@@ -222,26 +222,59 @@ async def analyze_evidence(evidence_payload: Dict[str, Any]) -> ReadinessRespons
 
 
 def _extract_date_from_text(text: str) -> Optional[datetime]:
-    """Helper to extract a YYYY-MM-DD or MM/DD/YYYY date from text."""
+    """Helper to extract YYYY-MM-DD, DD Month YYYY, Month DD YYYY, or MM/DD/YYYY dates from text."""
     if not text:
         return None
-    match = re.search(r"\b(202[0-9])[-/](0[1-9]|1[0-2])[-/](0[1-9]|[12][0-9]|3[01])\b", text)
-    if match:
-        date_str = match.group(0).replace("/", "-")
+
+    # Pattern 1: ISO YYYY-MM-DD or YYYY/MM/DD
+    match1 = re.search(r"\b(202[0-9])[-/](0[1-9]|1[0-2])[-/](0[1-9]|[12][0-9]|3[01])\b", text)
+    if match1:
         try:
-            return datetime.strptime(date_str, "%Y-%m-%d")
+            return datetime.strptime(match1.group(0).replace("/", "-"), "%Y-%m-%d")
         except ValueError:
             pass
+
+    # Pattern 2: 14 May 2026 or 14-May-2026 or 26 August 2026
+    months = r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|June|July|August|September|October|November|December)"
+    match2 = re.search(rf"\b([0-3]?[0-9])[\s-]+({months})[\s-]+(202[0-9])\b", text, re.IGNORECASE)
+    if match2:
+        day = match2.group(1).zfill(2)
+        month_str = match2.group(2)[:3].capitalize()
+        year = match2.group(3)
+        try:
+            return datetime.strptime(f"{day}-{month_str}-{year}", "%d-%b-%Y")
+        except ValueError:
+            pass
+
+    # Pattern 3: May 14, 2026 or August 26, 2026
+    match3 = re.search(rf"\b({months})[\s-]+([0-3]?[0-9])\b,?\s*(202[0-9])\b", text, re.IGNORECASE)
+    if match3:
+        month_str = match3.group(1)[:3].capitalize()
+        day = match3.group(2).zfill(2)
+        year = match3.group(3)
+        try:
+            return datetime.strptime(f"{day}-{month_str}-{year}", "%d-%b-%Y")
+        except ValueError:
+            pass
+
     return None
 
 
 def _detect_product_name(text: str) -> Optional[str]:
-    """Dynamically extracts hardware product names from OCR / invoice / statement text."""
+    """Dynamically extracts hardware product names from OCR / invoice / statement text using Key-Value & Brand NLP."""
     if not text:
         return None
+
+    # Key-Value regex match (e.g. Product Name ClaimAI Pro X1 Smartphone)
+    kv_match = re.search(r"(?:Product Name|Product / Description|Product|Item Description|Device Name)[:\s\t]+([^\n\r,]+)", text, re.IGNORECASE)
+    if kv_match:
+        val = kv_match.group(1).strip()
+        if val and not val.lower().startswith("screenshot") and len(val) > 2:
+            return val
+
     lower = text.lower()
-    
     known_products = [
+        ("claimai pro x1", "ClaimAI Pro X1 Smartphone"),
         ("dell inspiron 15", "Dell Inspiron 15"),
         ("dell inspiron", "Dell Inspiron Laptop"),
         ("dell xps 15", "Dell XPS 15"),
@@ -271,7 +304,7 @@ def _detect_product_name(text: str) -> Optional[str]:
             return name
 
     # Generic hardware keywords extraction
-    for kw in ["laptop", "smartphone", "phone", "tablet", "monitor", "television", "tv", "camera", "keyboard", "watch", "device"]:
+    for kw in ["smartphone", "laptop", "phone", "tablet", "monitor", "television", "tv", "camera", "keyboard", "watch", "device"]:
         if kw in lower:
             return f"Uploaded {kw.capitalize()}"
 
@@ -300,10 +333,15 @@ def _fallback_heuristic_analysis(
     invoice_model = _detect_product_name(invoice_text) or _detect_product_name(combined_text)
     warranty_model = _detect_product_name(warranty_text)
 
-    # 2. Dynamic Serial Number Extraction
+    # 2. Dynamic Model / Variant & Serial Number Extraction
+    model_variant = None
+    model_match = re.search(r"(?:Model / Variant|Model Number|Model|Variant)[:\s\t]+([A-Za-z0-9-]+)", combined_text, re.IGNORECASE)
+    if model_match:
+        model_variant = model_match.group(1).strip()
+
     invoice_serial = None
     warranty_serial = None
-    serial_match = re.search(r"(?:Serial|SN|S/N|IMEI)[:\s#-]+([A-Za-z0-9-]+)", combined_text, re.IGNORECASE)
+    serial_match = re.search(r"(?:Serial Number / IMEI|Serial Number|Serial|SN|S/N|IMEI)[:\s\t#-]+([A-Za-z0-9-]+)", combined_text, re.IGNORECASE)
     if serial_match:
         invoice_serial = serial_match.group(1).strip()
 
@@ -399,7 +437,10 @@ def _fallback_heuristic_analysis(
     # Damage Type Classifier
     damage_type = None
     lower_comb = combined_text.lower()
-    if any(k in lower_comb for k in ["liquid", "water", "coffee", "spill", "splash", "rain", "moisture"]):
+    damage_match = re.search(r"(?:Damage Classification|Damage Type|Damage)[:\s\t]+([^\n\r,]+)", combined_text, re.IGNORECASE)
+    if damage_match:
+        damage_type = damage_match.group(1).strip()
+    elif any(k in lower_comb for k in ["liquid", "water", "coffee", "spill", "splash", "rain", "moisture"]):
         damage_type = "Liquid Spillage / Moisture Exposure"
     elif any(k in lower_comb for k in ["screen", "display", "glass", "crack", "shatter", "fracture", "broken"]):
         damage_type = "Physical Screen / Display Impact Crack"
@@ -407,8 +448,8 @@ def _fallback_heuristic_analysis(
         damage_type = "Physical Fall / Accidental Damage"
 
     extracted_entities = ExtractedEntities(
-        product_name=invoice_model or warranty_model or (photos_text[:35].strip() if photos_text.strip() else None),
-        model_number=invoice_serial or warranty_serial,
+        product_name=invoice_model or warranty_model or None,
+        model_number=model_variant or invoice_serial or warranty_serial,
         serial_number=invoice_serial or warranty_serial,
         purchase_date=purchase_date_str,
         incident_date=incident_date_str,
