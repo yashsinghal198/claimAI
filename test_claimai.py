@@ -187,10 +187,17 @@ def test_api():
     assert "discrepancies" in resp_json
     assert "photo_metadata" in resp_json
     assert "forensics" in resp_json
-    print("  [OK] API returned 200 with complete Phase 3 schema:")
-    print(f"    - Score: {resp_json['readiness_score']}")
-    print(f"    - Forensics Authenticity: {resp_json['forensics']['authenticity_score']}%")
-    print(f"    - Discrepancies: {len(resp_json['discrepancies'])}")
+    # Test interview endpoint
+    interview_res = client.post("/api/v1/interview", json={
+        "current_statement": "I dropped my phone",
+        "messages": [],
+        "last_user_response": "At home on tile floor"
+    })
+    assert interview_res.status_code == 200, f"Interview Error: {interview_res.text}"
+    int_json = interview_res.json()
+    assert "assistant_reply" in int_json
+    assert "enhanced_statement" in int_json
+    print(f"    - Interview Assistant: '{int_json['assistant_reply'][:40]}...'")
 
 
 async def main():
