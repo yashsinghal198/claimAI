@@ -78,6 +78,13 @@ export async function analyzeClaimEvidence(formData: {
   }
 }
 
+function isGenericFilename(filename: string): boolean {
+  if (!filename) return true;
+  const lower = filename.toLowerCase();
+  const genericPrefixes = ["screenshot", "img", "dsc", "scan", "document", "file", "upload", "photo", "image"];
+  return genericPrefixes.some((p) => lower.startsWith(p)) || /\d{4}-\d{2}-\d{2}/.test(lower);
+}
+
 function generateClientHeuristicFallback(formData: {
   incidentDescription: string;
   invoiceFile: File | null;
@@ -100,12 +107,17 @@ function generateClientHeuristicFallback(formData: {
   const isModelMismatchPreset = photoName.toLowerCase().includes("no_serial_tag") || invoiceName.includes("DELL-99881");
   const isCleanCompletePreset = photoName.toLowerCase().includes("inspiron_damage_serial_tag");
 
-  // Calculate dynamic score based on user's REAL uploads
   const hasInvoice = !isDuplicatePreset && !!formData.invoiceFile;
   const hasWarranty = !!formData.warrantyFile;
   const hasPhotos = formData.damagePhotoFiles && formData.damagePhotoFiles.length > 0;
   const hasText = text.length > 10;
 
+  // Extract dates first to drive checks
+  const dateMatch = text.match(/\b(202[0-9]-[0-1][0-9]-[0-3][0-9])\b/) || text.match(/\b(202[0-9])\b/);
+  const derivedIncidentDate = isCleanCompletePreset ? "2024-08-14" : (dateMatch ? dateMatch[0] : null);
+  const derivedPurchaseDate = isCleanCompletePreset ? "2024-02-10" : (hasInvoice && dateMatch ? dateMatch[0] : null);
+
+  // Calculate dynamic score based on user's REAL uploads
   if (isDuplicatePreset) {
     score = 35;
   } else if (isModelMismatchPreset) {
@@ -113,27 +125,38 @@ function generateClientHeuristicFallback(formData: {
   } else if (isCleanCompletePreset) {
     score = 95;
   } else {
-    // Dynamic score calculation for arbitrary user uploads
     if (!hasInvoice) score -= 30;
     if (!hasWarranty) score -= 15;
     if (!hasPhotos) score -= 25;
-    if (!hasText) score -= 20;
+    if (!derivedPurchaseDate) score -= 10;
+    if (!hasText) score -= 10;
   }
 
   score = Math.max(15, Math.min(100, score));
 
+  // Check 1: Ownership
   checks.push({ label: "Ownership verified", passed: hasInvoice });
   if (!hasInvoice) {
     issues.push({
       severity: "HIGH" as const,
-      description: `Proof of purchase / receipt missing for uploaded document '${invoiceName || "Receipt"}'.`,
+      description: "Proof of purchase / receipt document is missing.",
     });
     actions.push("Upload purchase receipt or sales invoice.");
   }
 
-  checks.push({ label: "Purchase date identified", passed: hasInvoice || hasWarranty });
-  checks.push({ label: "Product identity matched", passed: !isModelMismatchPreset });
+  // Check 2: Purchase Date Identified (Accurate check based on actual detected date!)
+  const hasPurchaseDatePassed = !!derivedPurchaseDate;
+  checks.push({ label: "Purchase date identified", passed: hasPurchaseDatePassed });
+  if (!hasPurchaseDatePassed && hasInvoice) {
+    issues.push({
+      severity: "MEDIUM" as const,
+      description: "Purchase date could not be parsed from receipt or narrative.",
+    });
+    actions.push("Ensure receipt displays a clear purchase date or mention purchase year in narrative.");
+  }
 
+  // Check 3: Product Identity Match
+  checks.push({ label: "Product identity matched", passed: !isModelMismatchPreset });
   if (isModelMismatchPreset) {
     issues.push({
       severity: "HIGH" as const,
@@ -151,7 +174,16 @@ function generateClientHeuristicFallback(formData: {
     actions.push("Upload matching warranty certificate or clarify model discrepancy.");
   }
 
+  // Check 4: Damage Visible
   checks.push({ label: "Damage visible", passed: hasPhotos });
+  if (!hasPhotos && !isCleanCompletePreset) {
+    issues.push({
+      severity: "HIGH" as const,
+      description: "Damage photographs or product serial tag photos are missing.",
+    });
+    actions.push("Upload clear photograph of damaged device and serial number tag.");
+  }
+
   if (isDuplicatePreset) {
     issues.push({
       severity: "HIGH" as const,
@@ -160,14 +192,13 @@ function generateClientHeuristicFallback(formData: {
     actions.push("Re-take an original camera photograph of damaged device.");
   }
 
+  // Check 5: Timeline Validated
   checks.push({ label: "Timeline validated", passed: hasText || hasInvoice });
 
-  // Extract dynamic names & dates from user input or file names
+  // Extract dynamic product name (Clean filter to prevent raw Screenshot filenames!)
   let derivedProductName: string | null = null;
   if (isCleanCompletePreset || isModelMismatchPreset) {
     derivedProductName = "Dell Inspiron 15";
-  } else if (invoiceName) {
-    derivedProductName = invoiceName.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
   } else if (text.includes("macbook")) {
     derivedProductName = "Apple MacBook Pro";
   } else if (text.includes("dell")) {
@@ -176,14 +207,9 @@ function generateClientHeuristicFallback(formData: {
     derivedProductName = "HP Envy Laptop";
   } else if (text.includes("phone") || text.includes("iphone")) {
     derivedProductName = "Smartphone Device";
-  } else if (photoName) {
-    derivedProductName = photoName.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
+  } else if (invoiceName && !isGenericFilename(invoiceName)) {
+    derivedProductName = invoiceName.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
   }
-
-  // Date extraction regex (e.g. 2024-08-14 or 2024)
-  const dateMatch = text.match(/\b(202[0-9]-[0-1][0-9]-[0-3][0-9])\b/) || text.match(/\b(202[0-9])\b/);
-  const derivedIncidentDate = isCleanCompletePreset ? "2024-08-14" : (dateMatch ? dateMatch[0] : null);
-  const derivedPurchaseDate = isCleanCompletePreset ? "2024-02-10" : (hasInvoice && dateMatch ? dateMatch[0] : null);
 
   const extractedEntities: ExtractedEntities = {
     product_name: derivedProductName,
