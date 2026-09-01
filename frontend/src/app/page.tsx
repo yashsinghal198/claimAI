@@ -18,6 +18,7 @@ import { Navbar } from "@/components/Navbar";
 import { DemoPresets, PRESETS } from "@/components/DemoPresets";
 import { Dropzone } from "@/components/Dropzone";
 import { ReadinessGauge } from "@/components/ReadinessGauge";
+import { ExtractedEntitiesCard } from "@/components/ExtractedEntitiesCard";
 import { VerificationChecklist } from "@/components/VerificationChecklist";
 import { IssuesFeed } from "@/components/IssuesFeed";
 import { ActionPlan } from "@/components/ActionPlan";
@@ -168,14 +169,14 @@ export default function ClaimAIDashboard() {
                 {/* Incident Narrative Textarea */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-slate-200 flex items-center justify-between">
-                    <span>Incident Narrative & Timeline</span>
+                    <span>Incident Narrative & Statement</span>
                     <span className="text-[10px] text-slate-400 font-normal">What happened & when?</span>
                   </label>
                   <textarea
                     rows={4}
                     value={incidentDescription}
                     onChange={(e) => setIncidentDescription(e.target.value)}
-                    placeholder="Describe how damage occurred, incident date, device location, and any relevant details..."
+                    placeholder="Describe how damage occurred, incident date (e.g. 2024-08-14), location, and any relevant details..."
                     className="w-full text-xs p-3 rounded-xl bg-slate-950/70 border border-slate-800 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500/80 focus:ring-1 focus:ring-cyan-500/50 transition-all leading-relaxed"
                   />
                 </div>
@@ -183,8 +184,8 @@ export default function ClaimAIDashboard() {
                 {/* Proof of Purchase / Invoice */}
                 <Dropzone
                   label="Purchase Receipt or Invoice"
-                  sublabel="PDF or Image"
-                  accept=".pdf,.png,.jpg,.jpeg,.webp"
+                  sublabel="PDF, Image, or Text"
+                  accept=".pdf,.png,.jpg,.jpeg,.webp,.txt"
                   icon="pdf"
                   files={invoiceFiles}
                   onFilesChange={setInvoiceFiles}
@@ -194,8 +195,8 @@ export default function ClaimAIDashboard() {
                 {/* Warranty Policy Document */}
                 <Dropzone
                   label="Warranty / Policy Document"
-                  sublabel="PDF or Image"
-                  accept=".pdf,.png,.jpg,.jpeg,.webp"
+                  sublabel="PDF, Image, or Text"
+                  accept=".pdf,.png,.jpg,.jpeg,.webp,.txt"
                   icon="pdf"
                   files={warrantyFiles}
                   onFilesChange={setWarrantyFiles}
@@ -204,7 +205,7 @@ export default function ClaimAIDashboard() {
                 {/* Damage & Serial Tag Photos */}
                 <Dropzone
                   label="Damage & Serial Number Photos"
-                  sublabel="Multiple Angles"
+                  sublabel="Multiple Angles / Tags"
                   accept=".png,.jpg,.jpeg,.webp"
                   icon="image"
                   multiple
@@ -256,6 +257,9 @@ export default function ClaimAIDashboard() {
               <div className="space-y-5 animate-in fade-in duration-500">
                 {/* Readiness Score Gauge */}
                 <ReadinessGauge score={result.readiness_score} />
+
+                {/* Parsed Entities Card */}
+                <ExtractedEntitiesCard entities={result.extracted_entities} />
 
                 {/* Verification Checklist */}
                 <VerificationChecklist checks={result.verification_checks} />

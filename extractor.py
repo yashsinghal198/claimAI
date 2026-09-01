@@ -1,7 +1,7 @@
 """
 extractor.py
 Document and image processing layer for ClaimAI.
-Extracts structured text from PDF invoices/warranties and runs OCR on visual evidence.
+Extracts structured text from PDF invoices/warranties, plain text files, and runs OCR on visual evidence.
 """
 
 import io
@@ -62,6 +62,16 @@ def _sync_extract_text_from_image(file_bytes: bytes) -> str:
     except Exception as e:
         logger.warning(f"Failed to extract text from image via OCR: {e}")
         return ""
+
+
+def extract_text_from_txt(file_bytes: bytes) -> str:
+    """Decode text file bytes with UTF-8 / latin-1 fallback."""
+    if not file_bytes:
+        return ""
+    try:
+        return file_bytes.decode("utf-8").strip()
+    except UnicodeDecodeError:
+        return file_bytes.decode("latin-1", errors="ignore").strip()
 
 
 async def extract_text_from_pdf(file_bytes: bytes) -> str:

@@ -10,7 +10,7 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from models import ReadinessResponse
-from extractor import extract_text_from_pdf, extract_text_from_image
+from extractor import extract_text_from_pdf, extract_text_from_image, extract_text_from_txt
 from reasoning import analyze_evidence
 
 # Configure logging
@@ -54,7 +54,7 @@ async def health_check():
 
 
 async def _parse_upload_file(file: Optional[UploadFile]) -> str:
-    """Helper to detect file type and extract text via appropriate extractor."""
+    """Helper to detect file type (PDF, Text, Image) and extract text via appropriate extractor."""
     if not file:
         return ""
     
@@ -67,6 +67,8 @@ async def _parse_upload_file(file: Optional[UploadFile]) -> str:
 
     if filename.endswith(".pdf") or "application/pdf" in content_type:
         return await extract_text_from_pdf(file_bytes)
+    elif filename.endswith(".txt") or "text/plain" in content_type:
+        return extract_text_from_txt(file_bytes)
     else:
         # Assume image for JPG, PNG, WEBP, TIFF, or other binary visual formats
         return await extract_text_from_image(file_bytes)
@@ -81,8 +83,8 @@ async def _parse_upload_file(file: Optional[UploadFile]) -> str:
 )
 async def analyze_claim_evidence(
     incident_description: Optional[str] = Form(None, description="Detailed text narrative describing what happened"),
-    invoice: Optional[UploadFile] = File(None, description="Purchase invoice or receipt (PDF or Image)"),
-    warranty: Optional[UploadFile] = File(None, description="Warranty or policy document (PDF or Image)"),
+    invoice: Optional[UploadFile] = File(None, description="Purchase invoice or receipt (PDF, Image, or Text)"),
+    warranty: Optional[UploadFile] = File(None, description="Warranty or policy document (PDF, Image, or Text)"),
     damage_photos: Optional[List[UploadFile]] = File(None, description="Damage and product serial photos")
 ):
     """

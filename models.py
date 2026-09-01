@@ -4,7 +4,7 @@ Data models and schemas for ClaimAI - Pre-Claim Evidence Intelligence.
 Strict Pydantic v2 models matching the structured API output specification.
 """
 
-from typing import List, Literal
+from typing import List, Literal, Optional
 from pydantic import BaseModel, Field
 
 
@@ -26,6 +26,16 @@ class DetectedIssue(BaseModel):
     )
 
 
+class ExtractedEntities(BaseModel):
+    """Structured entities extracted across invoices, warranties, photos, and narratives."""
+    product_name: Optional[str] = Field(None, description="Identified product or device name (e.g., MacBook Pro M3)")
+    model_number: Optional[str] = Field(None, description="Identified model number or code")
+    serial_number: Optional[str] = Field(None, description="Identified serial number or IMEI")
+    purchase_date: Optional[str] = Field(None, description="Identified purchase date")
+    incident_date: Optional[str] = Field(None, description="Identified incident date")
+    damage_type: Optional[str] = Field(None, description="Summary of physical/liquid/electronic damage")
+
+
 class ReadinessResponse(BaseModel):
     """Complete claim readiness analysis response."""
     readiness_score: int = Field(
@@ -45,4 +55,8 @@ class ReadinessResponse(BaseModel):
     recommended_actions: List[str] = Field(
         default_factory=list,
         description="List of actionable remediation steps to improve claim readiness before submission"
+    )
+    extracted_entities: Optional[ExtractedEntities] = Field(
+        default=None,
+        description="Structured key-value entities parsed from multimodal evidence"
     )

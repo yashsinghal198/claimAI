@@ -8,11 +8,21 @@ export interface DetectedIssue {
   description: string;
 }
 
+export interface ExtractedEntities {
+  product_name?: string | null;
+  model_number?: string | null;
+  serial_number?: string | null;
+  purchase_date?: string | null;
+  incident_date?: string | null;
+  damage_type?: string | null;
+}
+
 export interface ReadinessResponse {
   readiness_score: number;
   verification_checks: VerificationCheck[];
   issues_detected: DetectedIssue[];
   recommended_actions: string[];
+  extracted_entities?: ExtractedEntities | null;
 }
 
 export interface ClaimFormData {

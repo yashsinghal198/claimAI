@@ -138,6 +138,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({
         <div className="space-y-1.5 mt-2">
           {files.map((file, idx) => {
             const isPdf = file.name.toLowerCase().endsWith(".pdf");
+            const isTxt = file.name.toLowerCase().endsWith(".txt");
             return (
               <div
                 key={`${file.name}-${idx}`}
@@ -145,7 +146,13 @@ export const Dropzone: React.FC<DropzoneProps> = ({
               >
                 <div className="flex items-center gap-2 overflow-hidden">
                   <div className="w-6 h-6 rounded bg-slate-800 flex items-center justify-center text-slate-300 flex-shrink-0">
-                    {isPdf ? <FileText className="w-3.5 h-3.5 text-rose-400" /> : <ImageIcon className="w-3.5 h-3.5 text-cyan-400" />}
+                    {isPdf ? (
+                      <FileText className="w-3.5 h-3.5 text-rose-400" />
+                    ) : isTxt ? (
+                      <FileText className="w-3.5 h-3.5 text-cyan-400" />
+                    ) : (
+                      <ImageIcon className="w-3.5 h-3.5 text-emerald-400" />
+                    )}
                   </div>
                   <div className="truncate">
                     <p className="text-slate-200 truncate font-medium">{file.name}</p>
