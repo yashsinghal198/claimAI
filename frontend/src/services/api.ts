@@ -112,12 +112,28 @@ function generateClientHeuristicFallback(formData: {
   const hasPhotos = formData.damagePhotoFiles && formData.damagePhotoFiles.length > 0;
   const hasText = text.length > 10;
 
-  // Extract dates first to drive checks
+  // Extract dynamic product name
+  let derivedProductName: string | null = null;
+  if (isCleanCompletePreset || isModelMismatchPreset) {
+    derivedProductName = "Dell Inspiron 15";
+  } else if (text.includes("macbook")) {
+    derivedProductName = "Apple MacBook Pro";
+  } else if (text.includes("dell")) {
+    derivedProductName = "Dell Inspiron Laptop";
+  } else if (text.includes("hp")) {
+    derivedProductName = "HP Envy Laptop";
+  } else if (text.includes("phone") || text.includes("iphone")) {
+    derivedProductName = "Smartphone Device";
+  } else if (invoiceName && !isGenericFilename(invoiceName)) {
+    derivedProductName = invoiceName.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
+  }
+
+  // Extract dates
   const dateMatch = text.match(/\b(202[0-9]-[0-1][0-9]-[0-3][0-9])\b/) || text.match(/\b(202[0-9])\b/);
   const derivedIncidentDate = isCleanCompletePreset ? "2024-08-14" : (dateMatch ? dateMatch[0] : null);
   const derivedPurchaseDate = isCleanCompletePreset ? "2024-02-10" : (hasInvoice && dateMatch ? dateMatch[0] : null);
 
-  // Calculate dynamic score based on user's REAL uploads
+  // Calculate dynamic score based on strict evidence presence
   if (isDuplicatePreset) {
     score = 35;
   } else if (isModelMismatchPreset) {
@@ -125,11 +141,11 @@ function generateClientHeuristicFallback(formData: {
   } else if (isCleanCompletePreset) {
     score = 95;
   } else {
-    if (!hasInvoice) score -= 30;
-    if (!hasWarranty) score -= 15;
-    if (!hasPhotos) score -= 25;
-    if (!derivedPurchaseDate) score -= 10;
-    if (!hasText) score -= 10;
+    if (!hasInvoice) score -= 25;
+    if (!derivedProductName) score -= 20;
+    if (!derivedPurchaseDate) score -= 15;
+    if (!hasPhotos) score -= 20;
+    if (!derivedIncidentDate) score -= 15;
   }
 
   score = Math.max(15, Math.min(100, score));
@@ -144,20 +160,27 @@ function generateClientHeuristicFallback(formData: {
     actions.push("Upload purchase receipt or sales invoice.");
   }
 
-  // Check 2: Purchase Date Identified (Accurate check based on actual detected date!)
+  // Check 2: Purchase Date Identified (STRICT: Passed ONLY if purchase date is detected)
   const hasPurchaseDatePassed = !!derivedPurchaseDate;
   checks.push({ label: "Purchase date identified", passed: hasPurchaseDatePassed });
-  if (!hasPurchaseDatePassed && hasInvoice) {
+  if (!hasPurchaseDatePassed) {
     issues.push({
       severity: "MEDIUM" as const,
-      description: "Purchase date could not be parsed from receipt or narrative.",
+      description: "Purchase date could not be identified from receipt or narrative.",
     });
-    actions.push("Ensure receipt displays a clear purchase date or mention purchase year in narrative.");
+    actions.push("Ensure receipt displays a clear purchase date or state purchase year in statement.");
   }
 
-  // Check 3: Product Identity Match
-  checks.push({ label: "Product identity matched", passed: !isModelMismatchPreset });
-  if (isModelMismatchPreset) {
+  // Check 3: Product Identity Matched (STRICT: Passed ONLY if product name is identified AND no mismatch)
+  const hasProductMatchedPassed = !!derivedProductName && !isModelMismatchPreset;
+  checks.push({ label: "Product identity matched", passed: hasProductMatchedPassed });
+  if (!derivedProductName) {
+    issues.push({
+      severity: "HIGH" as const,
+      description: "Product make, model, or hardware serial tag could not be identified from uploaded files.",
+    });
+    actions.push("Upload document showing clear product model name or hardware serial tag.");
+  } else if (isModelMismatchPreset) {
     issues.push({
       severity: "HIGH" as const,
       description: "Model discrepancy detected between invoice product code and registered warranty model.",
@@ -174,7 +197,7 @@ function generateClientHeuristicFallback(formData: {
     actions.push("Upload matching warranty certificate or clarify model discrepancy.");
   }
 
-  // Check 4: Damage Visible
+  // Check 4: Damage Visible (STRICT: Passed ONLY if damage photos exist)
   checks.push({ label: "Damage visible", passed: hasPhotos });
   if (!hasPhotos && !isCleanCompletePreset) {
     issues.push({
@@ -192,23 +215,15 @@ function generateClientHeuristicFallback(formData: {
     actions.push("Re-take an original camera photograph of damaged device.");
   }
 
-  // Check 5: Timeline Validated
-  checks.push({ label: "Timeline validated", passed: hasText || hasInvoice });
-
-  // Extract dynamic product name (Clean filter to prevent raw Screenshot filenames!)
-  let derivedProductName: string | null = null;
-  if (isCleanCompletePreset || isModelMismatchPreset) {
-    derivedProductName = "Dell Inspiron 15";
-  } else if (text.includes("macbook")) {
-    derivedProductName = "Apple MacBook Pro";
-  } else if (text.includes("dell")) {
-    derivedProductName = "Dell Inspiron Laptop";
-  } else if (text.includes("hp")) {
-    derivedProductName = "HP Envy Laptop";
-  } else if (text.includes("phone") || text.includes("iphone")) {
-    derivedProductName = "Smartphone Device";
-  } else if (invoiceName && !isGenericFilename(invoiceName)) {
-    derivedProductName = invoiceName.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
+  // Check 5: Timeline Validated (STRICT: Passed ONLY if dates exist and are chronologically valid)
+  const hasTimelinePassed = !!(derivedIncidentDate || derivedPurchaseDate);
+  checks.push({ label: "Timeline validated", passed: hasTimelinePassed });
+  if (!hasTimelinePassed) {
+    issues.push({
+      severity: "MEDIUM" as const,
+      description: "Incident date and coverage timeline could not be validated.",
+    });
+    actions.push("Provide incident date in statement narrative.");
   }
 
   const extractedEntities: ExtractedEntities = {

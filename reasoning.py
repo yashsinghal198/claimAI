@@ -327,7 +327,8 @@ def _fallback_heuristic_analysis(
     checks.append(VerificationCheck(label="Purchase date identified", passed=has_purchase_date))
 
     # Check 3: Cross-Document Model Consistency
-    product_match_passed = True
+    # Check 3: Cross-Document Model Consistency (Passed ONLY if product is identified and matched)
+    product_match_passed = bool(invoice_model or warranty_model)
     if invoice_model and warranty_model and invoice_model.lower() != warranty_model.lower():
         product_match_passed = False
         score -= 25
@@ -345,15 +346,26 @@ def _fallback_heuristic_analysis(
             explanation="Product model on the purchase invoice conflicts with the model registered on the warranty policy."
         ))
         actions.append(f"Upload warranty certificate matching invoice product model ({invoice_model}).")
+    elif not (invoice_model or warranty_model):
+        score -= 20
+        issues.append(DetectedIssue(
+            severity="HIGH",
+            description="Product model or hardware serial tag could not be identified from uploaded files."
+        ))
+        actions.append("Upload document showing clear product model name or hardware serial tag.")
 
     checks.append(VerificationCheck(label="Product identity matched", passed=product_match_passed))
 
     # Check 4: Damage Proof
     has_damage = bool(incident_description.strip() or photos_text.strip() or photo_metadata_list)
     checks.append(VerificationCheck(label="Damage visible", passed=has_damage))
+    if not has_damage:
+        score -= 20
+        issues.append(DetectedIssue(severity="HIGH", description="Damage photographs or serial tag photos are missing."))
+        actions.append("Upload clear photograph of damaged device and serial number tag.")
 
-    # Check 5: Timeline Logic
-    timeline_valid = True
+    # Check 5: Timeline Logic (Passed ONLY if dates exist and are chronologically valid)
+    timeline_valid = bool(purchase_dt or incident_dt)
     if purchase_dt and incident_dt and purchase_dt > incident_dt:
         timeline_valid = False
         score -= 40
@@ -371,6 +383,10 @@ def _fallback_heuristic_analysis(
             explanation="Chronological impossibility: Invoice purchase date post-dates the claimed incident event."
         ))
         actions.append("Correct purchase or incident date before final submission.")
+    elif not (purchase_dt or incident_dt):
+        score -= 15
+        issues.append(DetectedIssue(severity="MEDIUM", description="Incident timeline or purchase coverage date could not be validated."))
+        actions.append("Provide incident date in statement narrative.")
 
     checks.append(VerificationCheck(label="Timeline validated", passed=timeline_valid))
     checks.append(VerificationCheck(
