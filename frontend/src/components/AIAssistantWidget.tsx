@@ -129,11 +129,17 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
     } catch {
       // Offline human fallback stream
       const lowerInput = userText.toLowerCase().trim();
-      const isGreeting = ["hi", "hello", "hey", "hola", "sup", "good morning"].includes(lowerInput);
+      const isGreetingOrTypo =
+        ["hi", "hio", "hello", "hey", "hola", "sup", "good morning", "ok", "cool", "test", "yes", "no"].includes(lowerInput) ||
+        lowerInput.length <= 3;
 
-      if (isGreeting) {
+      const isClaimDetail =
+        lowerInput.length > 12 ||
+        ["drop", "fall", "crack", "spill", "water", "screen", "laptop", "phone", "damage", "indoor", "outdoor", "desk", "floor", "case", "receipt", "invoice"].some((k) => lowerInput.includes(k));
+
+      if (isGreetingOrTypo && !isClaimDetail) {
         streamBotResponse(
-          "Hey there! 👋 I'm your ClaimAI intake assistant. Tell me what happened to your device, or click one of the quick options below!"
+          "Hey there! 👋 I'm your ClaimAI intake assistant. Tell me what happened to your device (e.g. 'I dropped my laptop on the floor'), or pick an option below!"
         );
         setChips([
           "Dropped laptop / phone",
@@ -143,13 +149,13 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
         ]);
       } else {
         const refined = statement
-          ? `${statement}. Context: ${userText}`
+          ? `${statement}. Additional context: ${userText}`
           : `Incident details: ${userText}`;
         setStatement(refined);
         onUpdateStatement(refined);
 
         streamBotResponse(
-          `Got it! I've recorded that: "${userText}". I updated your incident statement in real time. Was there any liquid involved, or was the device in a protective case?`
+          `Understood! I've updated your statement with: "${userText}". Was there any liquid exposure involved, or was the device in a protective case?`
         );
         setChips([
           "No liquid involved, dry impact",
