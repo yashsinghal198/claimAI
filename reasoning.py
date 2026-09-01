@@ -170,12 +170,11 @@ async def analyze_evidence(evidence_payload: Dict[str, Any]) -> ReadinessRespons
     if groq_api_key and groq_api_key.strip().startswith("gsk_"):
         from langchain_groq import ChatGroq
         models_to_try = [
-            os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+            os.getenv("GROQ_MODEL", "llama-3.3-70b-specdec"),
+            "llama-3.3-70b-specdec",
+            "llama-3.1-70b-versatile",
             "llama-3.3-70b-versatile",
             "llama-3.1-8b-instant",
-            "llama3-70b-8192",
-            "llama3-8b-8192",
-            "mixtral-8x7b-32768",
         ]
         for g_model in models_to_try:
             try:
