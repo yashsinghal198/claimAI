@@ -33,6 +33,7 @@ import { EvidenceGraph } from "@/components/EvidenceGraph";
 import { CarrierExportModal } from "@/components/CarrierExportModal";
 import { InterviewerAgent } from "@/components/InterviewerAgent";
 import { SmartCameraModal } from "@/components/SmartCameraModal";
+import { AIAssistantWidget } from "@/components/AIAssistantWidget";
 import { VisualScanBanner } from "@/components/VisualScanBanner";
 
 import { ReadinessResponse, DemoPreset, CrossDocumentDiscrepancy } from "@/types";
@@ -387,8 +388,8 @@ export default function ClaimAIDashboard() {
 
                 <div className="grid grid-cols-2 gap-3 w-full max-w-sm pt-2 text-left">
                   <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-                    <p className="text-[11px] font-bold text-slate-200">💬 AI Interviewer</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Conversational intake Q&A to eliminate vague statements</p>
+                    <p className="text-[11px] font-bold text-slate-200">💬 AI Copilot Widget</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Real-time chat assistant with streaming typewriter response</p>
                   </div>
                   <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
                     <p className="text-[11px] font-bold text-slate-200">📸 Smart Camera HUD</p>
@@ -401,7 +402,14 @@ export default function ClaimAIDashboard() {
         </div>
       </main>
 
-      {/* AI Interviewer Agent Modal */}
+      {/* Persistent Floating Real-Time AI Assistant Bot Widget */}
+      <AIAssistantWidget
+        currentStatement={incidentDescription}
+        onUpdateStatement={(updated) => setIncidentDescription(updated)}
+        isAnalyzing={isAnalyzing}
+      />
+
+      {/* AI Interviewer Modal */}
       {showInterviewer && (
         <InterviewerAgent
           initialStatement={incidentDescription}
