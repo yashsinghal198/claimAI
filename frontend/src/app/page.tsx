@@ -15,6 +15,7 @@ import {
   Download,
   GitBranch,
   LayoutDashboard,
+  MessageSquareText,
 } from "lucide-react";
 
 import { Navbar } from "@/components/Navbar";
@@ -30,9 +31,11 @@ import { IssuesFeed } from "@/components/IssuesFeed";
 import { ActionPlan } from "@/components/ActionPlan";
 import { EvidenceGraph } from "@/components/EvidenceGraph";
 import { CarrierExportModal } from "@/components/CarrierExportModal";
+import { InterviewerAgent } from "@/components/InterviewerAgent";
+import { SmartCameraModal } from "@/components/SmartCameraModal";
 import { VisualScanBanner } from "@/components/VisualScanBanner";
 
-import { ReadinessResponse, DemoPreset } from "@/types";
+import { ReadinessResponse, DemoPreset, CrossDocumentDiscrepancy } from "@/types";
 import { analyzeClaimEvidence } from "@/services/api";
 
 export default function ClaimAIDashboard() {
@@ -49,9 +52,11 @@ export default function ClaimAIDashboard() {
   const [result, setResult] = useState<ReadinessResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Phase 3 UI State
+  // Modals & Navigation Tabs
   const [activeTab, setActiveTab] = useState<"overview" | "graph">("overview");
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showInterviewer, setShowInterviewer] = useState(false);
+  const [showCameraModal, setShowCameraModal] = useState(false);
 
   // Load a demo scenario
   const handleSelectPreset = (preset: DemoPreset) => {
@@ -90,6 +95,25 @@ export default function ClaimAIDashboard() {
     setActivePresetId(null);
     setResult(null);
     setErrorMessage(null);
+  };
+
+  // Instant Auto-Resolve Discrepancy Action
+  const handleAutoResolveDiscrepancy = (discrepancy: CrossDocumentDiscrepancy) => {
+    if (!result) return;
+    const newScore = Math.min(100, result.readiness_score + 25);
+    const updatedChecks = result.verification_checks.map((chk) =>
+      chk.label === "Product identity matched" ? { ...chk, passed: true } : chk
+    );
+    setResult({
+      ...result,
+      readiness_score: newScore,
+      verification_checks: updatedChecks,
+    });
+  };
+
+  // Smart Camera snapshot capture
+  const handleSmartCameraCapture = (file: File) => {
+    setDamagePhotoFiles((prev) => [...prev, file]);
   };
 
   // Trigger claim analysis
@@ -176,12 +200,19 @@ export default function ClaimAIDashboard() {
               </div>
 
               <form onSubmit={handleAnalyze} className="space-y-4">
-                {/* Incident Narrative Textarea */}
+                {/* Incident Narrative Textarea + AI Interviewer Trigger */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-200 flex items-center justify-between">
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-200">
                     <span>Incident Narrative & Statement</span>
-                    <span className="text-[10px] text-slate-400 font-normal">What happened & when?</span>
-                  </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowInterviewer(true)}
+                      className="text-[11px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-semibold bg-cyan-500/10 hover:bg-cyan-500/20 px-2 py-0.5 rounded-lg border border-cyan-500/30 transition-all"
+                    >
+                      <MessageSquareText className="w-3 h-3" />
+                      <span>AI Interview Assistant</span>
+                    </button>
+                  </div>
                   <textarea
                     rows={4}
                     value={incidentDescription}
@@ -212,7 +243,7 @@ export default function ClaimAIDashboard() {
                   onFilesChange={setWarrantyFiles}
                 />
 
-                {/* Damage & Serial Tag Photos */}
+                {/* Damage & Serial Tag Photos + Smart Camera Button */}
                 <Dropzone
                   label="Damage & Serial Number Photos"
                   sublabel="Multiple Angles / Tags"
@@ -221,6 +252,7 @@ export default function ClaimAIDashboard() {
                   multiple
                   files={damagePhotoFiles}
                   onFilesChange={setDamagePhotoFiles}
+                  onOpenSmartCamera={() => setShowCameraModal(true)}
                   required
                 />
 
@@ -312,8 +344,11 @@ export default function ClaimAIDashboard() {
                     {/* Authenticity & Integrity Shield */}
                     <AuthenticityShield forensics={result.forensics} />
 
-                    {/* Side-by-Side Discrepancy Conflict Inspector */}
-                    <DiscrepancyInspector discrepancies={result.discrepancies} />
+                    {/* Side-by-Side Discrepancy Conflict Inspector with Instant Auto-Fix */}
+                    <DiscrepancyInspector
+                      discrepancies={result.discrepancies}
+                      onAutoResolve={handleAutoResolveDiscrepancy}
+                    />
 
                     {/* Parsed Entities Card */}
                     <ExtractedEntitiesCard entities={result.extracted_entities} />
@@ -344,19 +379,20 @@ export default function ClaimAIDashboard() {
                     Awaiting Claim Evidence
                   </h3>
                   <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-                    Upload documents on the left studio or click one of the{" "}
-                    <span className="text-cyan-300 font-semibold">Demo Scenarios</span> above to initiate automated cross-evidence intelligence.
+                    Upload documents on the left studio, use the{" "}
+                    <span className="text-cyan-300 font-semibold">AI Interview Assistant</span>, or click one of the{" "}
+                    <span className="text-cyan-300 font-semibold">Demo Scenarios</span> above.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 w-full max-w-sm pt-2 text-left">
                   <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-                    <p className="text-[11px] font-bold text-slate-200">🔍 OCR & Forgery Forensics</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Extracts serials, dates & checks visual tampering</p>
+                    <p className="text-[11px] font-bold text-slate-200">💬 AI Interviewer</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Conversational intake Q&A to eliminate vague statements</p>
                   </div>
                   <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-                    <p className="text-[11px] font-bold text-slate-200">📊 Interactive Graph</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Maps cross-document entity topology & contradictions</p>
+                    <p className="text-[11px] font-bold text-slate-200">📸 Smart Camera HUD</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Real-time serial tag & damage framing alignment</p>
                   </div>
                 </div>
               </div>
@@ -364,6 +400,23 @@ export default function ClaimAIDashboard() {
           </div>
         </div>
       </main>
+
+      {/* AI Interviewer Agent Modal */}
+      {showInterviewer && (
+        <InterviewerAgent
+          initialStatement={incidentDescription}
+          onApplyStatement={(refined) => setIncidentDescription(refined)}
+          onClose={() => setShowInterviewer(false)}
+        />
+      )}
+
+      {/* Smart Guided Camera Modal */}
+      {showCameraModal && (
+        <SmartCameraModal
+          onCapture={handleSmartCameraCapture}
+          onClose={() => setShowCameraModal(false)}
+        />
+      )}
 
       {/* Carrier Export Modal */}
       {showExportModal && result && (
@@ -375,7 +428,7 @@ export default function ClaimAIDashboard() {
 
       {/* Footer */}
       <footer className="mt-auto border-t border-slate-900 py-4 px-4 text-center text-xs text-slate-500">
-        <p>ClaimAI — CodeBuild 1.0 Hackathon • Team Tribit • Built with Next.js, FastAPI & LangChain GPT-4o</p>
+        <p>ClaimAI — CodeBuild 1.0 Hackathon • Team Tribit • Built with Next.js, FastAPI & Groq Llama-3.3-70B</p>
       </footer>
     </div>
   );

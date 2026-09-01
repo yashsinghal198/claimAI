@@ -34,6 +34,8 @@ export interface CrossDocumentDiscrepancy {
   value_b: string;
   severity: "HIGH" | "MEDIUM" | "LOW";
   explanation: string;
+  can_auto_resolve?: boolean;
+  suggested_fix?: string | null;
 }
 
 export interface ForensicAnalysis {
@@ -42,6 +44,8 @@ export interface ForensicAnalysis {
   ai_generated_risk: "LOW" | "MEDIUM" | "HIGH";
   editing_software_detected?: string | null;
   metadata_integrity: string;
+  phash_fingerprint?: string | null;
+  is_duplicate_claim?: boolean;
   forensic_checks: VerificationCheck[];
 }
 
@@ -54,6 +58,24 @@ export interface ReadinessResponse {
   discrepancies?: CrossDocumentDiscrepancy[];
   photo_metadata?: PhotoMetadata[];
   forensics?: ForensicAnalysis | null;
+}
+
+export interface InterviewMessage {
+  role: "assistant" | "user";
+  content: string;
+}
+
+export interface InterviewRequest {
+  current_statement: string;
+  messages: InterviewMessage[];
+  last_user_response?: string;
+}
+
+export interface InterviewResponse {
+  assistant_reply: string;
+  enhanced_statement: string;
+  clarifying_chips: string[];
+  is_statement_complete: boolean;
 }
 
 export interface ClaimFormData {

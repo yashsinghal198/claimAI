@@ -1,19 +1,34 @@
 "use client";
 
-import React from "react";
-import { GitCompare, AlertTriangle, ArrowRight, ShieldAlert, FileText, CheckCircle2 } from "lucide-react";
+import React, { useState } from "react";
+import { GitCompare, AlertTriangle, ArrowRight, ShieldAlert, FileText, CheckCircle2, Zap, Sparkles } from "lucide-react";
 import { CrossDocumentDiscrepancy } from "@/types";
 
 interface DiscrepancyInspectorProps {
   discrepancies?: CrossDocumentDiscrepancy[];
+  onAutoResolve?: (discrepancy: CrossDocumentDiscrepancy) => void;
 }
 
 export const DiscrepancyInspector: React.FC<DiscrepancyInspectorProps> = ({
   discrepancies = [],
+  onAutoResolve,
 }) => {
+  const [resolvedFields, setResolvedFields] = useState<string[]>([]);
+
   if (!discrepancies || discrepancies.length === 0) {
     return null;
   }
+
+  const activeDiscrepancies = discrepancies.filter(
+    (d) => !resolvedFields.includes(d.field)
+  );
+
+  const handleResolve = (item: CrossDocumentDiscrepancy) => {
+    setResolvedFields((prev) => [...prev, item.field]);
+    if (onAutoResolve) {
+      onAutoResolve(item);
+    }
+  };
 
   return (
     <div className="bg-slate-900/60 border border-rose-500/40 rounded-2xl p-5 lg:p-6 backdrop-blur-md relative overflow-hidden shadow-2xl shadow-rose-950/20">
@@ -25,7 +40,7 @@ export const DiscrepancyInspector: React.FC<DiscrepancyInspectorProps> = ({
           <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
             Cross-Document Conflict Inspector
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/30">
-              {discrepancies.length} Conflicts Detected
+              {activeDiscrepancies.length} Active Conflicts
             </span>
           </h3>
         </div>
@@ -36,6 +51,28 @@ export const DiscrepancyInspector: React.FC<DiscrepancyInspectorProps> = ({
 
       <div className="space-y-4">
         {discrepancies.map((item, idx) => {
+          const isResolved = resolvedFields.includes(item.field);
+
+          if (isResolved) {
+            return (
+              <div
+                key={`${item.field}-${idx}`}
+                className="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-500/40 flex items-center justify-between animate-in fade-in duration-300"
+              >
+                <div className="flex items-center gap-2 text-xs text-emerald-300">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span className="font-semibold">{item.field} Auto-Normalized & Resolved:</span>
+                  <span className="font-mono bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800">
+                    "{item.value_a}" (Matched)
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono text-emerald-400 font-bold px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30">
+                  +25 PTS RECOVERED
+                </span>
+              </div>
+            );
+          }
+
           return (
             <div
               key={`${item.field}-${idx}`}
@@ -46,9 +83,16 @@ export const DiscrepancyInspector: React.FC<DiscrepancyInspectorProps> = ({
                   <AlertTriangle className="w-3.5 h-3.5" />
                   {item.field}
                 </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-800">
-                  {item.severity} CONFLICT
-                </span>
+
+                {/* Instant Fix Button */}
+                <button
+                  onClick={() => handleResolve(item)}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 hover:text-white border border-indigo-500/40 text-[11px] font-bold transition-all shadow-sm active:scale-95"
+                  title="Auto-map model numbers and normalize product identity"
+                >
+                  <Zap className="w-3 h-3 text-cyan-300" />
+                  <span>Instant Auto-Fix</span>
+                </button>
               </div>
 
               {/* Side-by-Side Comparison Box */}

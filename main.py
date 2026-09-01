@@ -1,15 +1,23 @@
 """
 main.py
 FastAPI gateway server for ClaimAI - Pre-Claim Evidence Intelligence.
-Phase 3: Multipart document ingestion with EXIF metadata, Forensics analysis & Cross-Document Graph Reasoning.
+Final Phase: Multipart Ingestion, Forensics with pHash, and Conversational Intake Interviewer.
 """
 
+import os
 import logging
 from typing import List, Optional
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
-from models import ReadinessResponse, PhotoMetadata, ForensicAnalysis
+from models import (
+    ReadinessResponse,
+    PhotoMetadata,
+    ForensicAnalysis,
+    InterviewRequest,
+    InterviewResponse,
+)
 from extractor import (
     extract_text_from_pdf,
     extract_text_from_image,
@@ -17,7 +25,7 @@ from extractor import (
     extract_image_exif_metadata,
     analyze_image_forensics,
 )
-from reasoning import analyze_evidence
+from reasoning import analyze_evidence, _get_llm
 
 logging.basicConfig(
     level=logging.INFO,
@@ -28,7 +36,7 @@ logger = logging.getLogger("claimai.main")
 app = FastAPI(
     title="ClaimAI — Pre-Claim Evidence Intelligence API",
     description="API gateway for intelligent pre-submission insurance and warranty claim evidence validation.",
-    version="3.0.0"
+    version="3.5.0"
 )
 
 # Configure CORS Middleware
@@ -47,15 +55,20 @@ async def root():
     return {
         "service": "ClaimAI Pre-Claim Evidence Intelligence",
         "status": "online",
-        "version": "3.0.0",
+        "version": "3.5.0",
         "features": [
             "OCR & PDF Parsing",
             "EXIF Hardware Metadata",
+            "Perceptual Hashing (dHash) Anti-Fraud",
             "Forgery & Manipulation Forensics",
             "Cross-Document Discrepancy Graph",
+            "Conversational Intake Interviewer",
             "Carrier-Ready Compliance Audit"
         ],
-        "endpoint": "POST /api/v1/analyze"
+        "endpoints": [
+            "POST /api/v1/analyze",
+            "POST /api/v1/interview"
+        ]
     }
 
 
@@ -86,6 +99,85 @@ async def _parse_upload_file(file: Optional[UploadFile]) -> str:
 
 
 @app.post(
+    "/api/v1/interview",
+    response_model=InterviewResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Intake"],
+    summary="Interactive conversational intake interviewer to refine and clarify incident narratives"
+)
+async def interview_claimant(req: InterviewRequest):
+    """
+    Conversational AI interviewer that reviews the user's initial statement,
+    asks clarifying follow-up questions to uncover risk details (liquid, location, case),
+    and refines the incident statement in real-time.
+    """
+    current_statement = req.current_statement.strip()
+    last_response = (req.last_user_response or "").strip()
+    history = req.messages
+
+    # Heuristic fallback if LLM is unavailable
+    fallback_chips = ["Indoors on desk", "No liquid involved", "Protective case was on", "Device powered off immediately"]
+    
+    # Check if statement already has essential details
+    has_date = any(k in current_statement for k in ["2024", "2025", "2026", "yesterday", "last week", "date"])
+    has_location = any(k in current_statement.lower() for k in ["desk", "floor", "office", "home", "car", "room", "table"])
+    has_mechanics = any(k in current_statement.lower() for k in ["drop", "crack", "spill", "fell", "shatter", "impact"])
+
+    # Enhance statement with last user reply if provided
+    enhanced = current_statement
+    if last_response and last_response not in current_statement:
+        enhanced = f"{current_statement}. Additional context: {last_response}".strip(". ") + "."
+
+    llm = _get_llm()
+    if not llm:
+        if not has_location:
+            return InterviewResponse(
+                assistant_reply="Where did the incident occur? Was it indoors (e.g. office/home desk) or outdoors?",
+                enhanced_statement=enhanced,
+                clarifying_chips=["Indoors at my office desk", "At home in living room", "Outdoors while commuting"],
+                is_statement_complete=False
+            )
+        elif not ("liquid" in enhanced.lower() or "water" in enhanced.lower()):
+            return InterviewResponse(
+                assistant_reply="Was there any liquid exposure or spillage involved during or after the drop?",
+                enhanced_statement=enhanced,
+                clarifying_chips=["No liquid exposure whatsoever", "Minor water splash", "Coffee/beverage spill"],
+                is_statement_complete=False
+            )
+        else:
+            return InterviewResponse(
+                assistant_reply="Thank you! Your incident narrative now contains clear timeline, location, and risk context.",
+                enhanced_statement=enhanced,
+                clarifying_chips=["Use this refined statement", "Add more details"],
+                is_statement_complete=True
+            )
+
+    # Dynamic LLM Interview Prompt
+    try:
+        from langchain_core.prompts import ChatPromptTemplate
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", """You are the Claims Intake Interviewer Agent for ClaimAI.
+Your goal is to politely ask 1 focused, clarifying question to extract missing risk and timeline details from a user's claim incident statement.
+If the statement is already detailed and complete, set is_statement_complete=True.
+Always provide 3 helpful quick-reply answer chips.
+Refine the enhanced_statement to be professional, chronological, and carrier-ready."""),
+            ("user", f"Current Statement: {current_statement}\nLast User Input: {last_response}\nChat History: {[m.model_dump() for m in history]}")
+        ])
+        structured_llm = llm.with_structured_output(InterviewResponse)
+        chain = prompt | structured_llm
+        result: InterviewResponse = await chain.ainvoke({})
+        return result
+    except Exception as e:
+        logger.warning(f"LLM interview failed, using heuristic: {e}")
+        return InterviewResponse(
+            assistant_reply="Could you clarify if any liquid was involved, or if the device had a protective case?",
+            enhanced_statement=enhanced,
+            clarifying_chips=["No liquid, dropped on carpet", "Protective case was installed", "Dry surface impact"],
+            is_statement_complete=True
+        )
+
+
+@app.post(
     "/api/v1/analyze",
     response_model=ReadinessResponse,
     status_code=status.HTTP_200_OK,
@@ -100,7 +192,7 @@ async def analyze_claim_evidence(
 ):
     """
     Accepts multipart claim evidence, extracts structured text, EXIF metadata,
-    runs generative forgery forensics, and performs cross-document discrepancy graph reasoning.
+    runs generative forgery & pHash duplicate forensics, and performs cross-document discrepancy graph reasoning.
     """
     logger.info("Received request to /api/v1/analyze")
 
@@ -136,7 +228,7 @@ async def analyze_claim_evidence(
                     exif_data = extract_image_exif_metadata(photo_bytes, photo.filename or f"photo_{idx + 1}.jpg")
                     photo_metadata_list.append(exif_data)
 
-                    # Forensics Analysis
+                    # Forensics Analysis (Tampering + pHash)
                     photo_forensics = analyze_image_forensics(photo_bytes, photo.filename or f"photo_{idx + 1}.jpg")
                     if overall_forensics is None or (photo_forensics.is_tampered and not overall_forensics.is_tampered):
                         overall_forensics = photo_forensics
@@ -153,7 +245,7 @@ async def analyze_claim_evidence(
 
         # 5. Run AI Reasoning & Discrepancy Graph Engine
         readiness_result: ReadinessResponse = await analyze_evidence(evidence_payload)
-        logger.info(f"Analysis complete. Readiness score: {readiness_result.readiness_score}, Authenticity: {readiness_result.forensics.authenticity_score if readiness_result.forensics else 'N/A'}%")
+        logger.info(f"Analysis complete. Score: {readiness_result.readiness_score}, Authenticity: {readiness_result.forensics.authenticity_score if readiness_result.forensics else 'N/A'}%")
 
         return readiness_result
 

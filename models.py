@@ -1,7 +1,7 @@
 """
 models.py
 Data models and schemas for ClaimAI - Pre-Claim Evidence Intelligence.
-Phase 3: Multimodal Entities, EXIF, Discrepancy Graph, and Forgery Forensics.
+Final Phase: Conversational Intake, Guided Forensics with pHash, and Auto-Resolution.
 """
 
 from typing import List, Literal, Optional
@@ -55,6 +55,8 @@ class CrossDocumentDiscrepancy(BaseModel):
     value_b: str = Field(..., description="Conflicting value found in Source B (e.g. 'Dell XPS 13 9315')")
     severity: Literal["HIGH", "MEDIUM", "LOW"] = Field(default="HIGH", description="Impact severity of discrepancy")
     explanation: str = Field(..., description="Detailed rationale explaining the contradiction")
+    can_auto_resolve: bool = Field(default=True, description="Whether system can auto-normalize this conflict")
+    suggested_fix: Optional[str] = Field(None, description="Auto-normalized target value")
 
 
 class ForensicAnalysis(BaseModel):
@@ -77,6 +79,14 @@ class ForensicAnalysis(BaseModel):
     metadata_integrity: str = Field(
         default="VERIFIED",
         description="Metadata status: VERIFIED, INCOMPLETE, or SUSPICIOUS"
+    )
+    phash_fingerprint: Optional[str] = Field(
+        None,
+        description="Perceptual difference hash fingerprint for reverse image search and duplicate claim defense"
+    )
+    is_duplicate_claim: bool = Field(
+        default=False,
+        description="Whether this perceptual hash matches any known online stock photo or recycled claim index"
     )
     forensic_checks: List[VerificationCheck] = Field(
         default_factory=list,
@@ -120,3 +130,24 @@ class ReadinessResponse(BaseModel):
         default=None,
         description="Generative forgery and image manipulation forensics audit"
     )
+
+
+class InterviewMessage(BaseModel):
+    """A message in the conversational intake interview."""
+    role: Literal["assistant", "user"] = Field(..., description="Role of message sender")
+    content: str = Field(..., description="Message text content")
+
+
+class InterviewRequest(BaseModel):
+    """Request payload for conversational interviewer assistant."""
+    current_statement: str = Field(..., description="Current user incident narrative")
+    messages: List[InterviewMessage] = Field(default_factory=list, description="Chat transcript history")
+    last_user_response: Optional[str] = Field(None, description="Latest message from the user")
+
+
+class InterviewResponse(BaseModel):
+    """Response payload from conversational interviewer assistant."""
+    assistant_reply: str = Field(..., description="Next conversational follow-up question or clarification")
+    enhanced_statement: str = Field(..., description="Refined, legally clear incident narrative updated in real-time")
+    clarifying_chips: List[str] = Field(default_factory=list, description="Suggested quick-reply chips for user convenience")
+    is_statement_complete: bool = Field(default=False, description="Whether the statement now has all required risk details")

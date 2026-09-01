@@ -1,7 +1,7 @@
 """
 extractor.py
 Document, image, EXIF metadata, and forgery forensics layer for ClaimAI.
-Phase 3: PDF parsing, OCR extraction, EXIF metadata, and generative forgery/tampering forensics.
+Final Phase: PDF parsing, OCR, EXIF metadata, Perceptual Hashing (dHash), and generative forgery forensics.
 """
 
 import io
@@ -23,6 +23,42 @@ AI_GENERATOR_SIGNATURES = [
     "comfyui", "novelai", "automatic1111", "firefly", "bing image creator", "leonardo.ai"
 ]
 
+# Simulated index of known online duplicate / stock claim fraud image hashes
+KNOWN_FRAUD_PHASH_INDEX = {
+    "f0e1d2c3b4a59687", "aa55aa55aa55aa55", "deadbeefcafe1234"
+}
+
+
+def compute_image_phash(file_bytes: bytes) -> Optional[str]:
+    """
+    Computes a 64-bit Difference Perceptual Hash (dHash) for anti-fraud visual similarity
+    and duplicate claim detection.
+    """
+    if not file_bytes:
+        return None
+    try:
+        image = Image.open(io.BytesIO(file_bytes)).convert("L")
+        # Resize to 9x8 to compare 8 horizontal pairs across 8 rows
+        resized = image.resize((9, 8), Image.Resampling.LANCZOS)
+        pixels = list(resized.getdata())
+
+        difference = []
+        for row in range(8):
+            for col in range(8):
+                pixel_left = pixels[row * 9 + col]
+                pixel_right = pixels[row * 9 + col + 1]
+                difference.append(pixel_left > pixel_right)
+
+        # Convert boolean list to 64-bit integer hex string
+        decimal_val = 0
+        for bit in difference:
+            decimal_val = (decimal_val << 1) | int(bit)
+
+        return f"{decimal_val:016x}"
+    except Exception as e:
+        logger.warning(f"Failed to compute perceptual hash: {e}")
+        return None
+
 
 def _sync_extract_text_from_pdf(file_bytes: bytes) -> str:
     """Synchronously extract plain text and table contents from PDF bytes using pdfplumber."""
@@ -36,7 +72,6 @@ def _sync_extract_text_from_pdf(file_bytes: bytes) -> str:
                 if page_text:
                     extracted_text.append(f"--- Page {page_idx + 1} ---\n{page_text.strip()}")
                 
-                # Check for tables and extract if present
                 tables = page.extract_tables()
                 if tables:
                     for table in tables:
@@ -133,14 +168,17 @@ def extract_image_exif_metadata(file_bytes: bytes, filename: str) -> PhotoMetada
 def analyze_image_forensics(file_bytes: bytes, filename: str) -> ForensicAnalysis:
     """
     Forensics engine detecting image manipulation, editing software signatures,
-    and synthetic AI-generated damage visual artifacts.
+    perceptual duplicate claim hashes (pHash), and synthetic AI artifacts.
     """
     checks: List[VerificationCheck] = []
-    authenticity_score = 95
+    authenticity_score = 96
     is_tampered = False
     ai_risk = "LOW"
     detected_software = None
     metadata_status = "VERIFIED"
+    is_duplicate = False
+
+    phash_fingerprint = compute_image_phash(file_bytes) if file_bytes else None
 
     if not file_bytes:
         return ForensicAnalysis(
@@ -148,10 +186,12 @@ def analyze_image_forensics(file_bytes: bytes, filename: str) -> ForensicAnalysi
             is_tampered=False,
             ai_generated_risk="LOW",
             metadata_integrity="INCOMPLETE",
+            phash_fingerprint=phash_fingerprint,
+            is_duplicate_claim=False,
             forensic_checks=[
                 VerificationCheck(label="Digital signature verified", passed=False),
                 VerificationCheck(label="No editing software artifacts", passed=True),
-                VerificationCheck(label="Pixel noise distribution consistent", passed=True),
+                VerificationCheck(label="Perceptual hash unique (No duplicates)", passed=True),
             ]
         )
 
@@ -159,7 +199,16 @@ def analyze_image_forensics(file_bytes: bytes, filename: str) -> ForensicAnalysi
         image = Image.open(io.BytesIO(file_bytes))
         raw_text_headers = str(file_bytes[:4096]).lower()
 
-        # Check 1: Editing software signatures in EXIF/XMP
+        # Check 1: Perceptual Hash Duplicate Claim Detection
+        if phash_fingerprint and phash_fingerprint in KNOWN_FRAUD_PHASH_INDEX:
+            is_duplicate = True
+            authenticity_score -= 45
+            is_tampered = True
+            checks.append(VerificationCheck(label="Perceptual hash unique (No duplicates)", passed=False))
+        else:
+            checks.append(VerificationCheck(label="Perceptual hash unique (No duplicates)", passed=True))
+
+        # Check 2: Editing software signatures in EXIF/XMP
         exif_raw = image.getexif()
         software_field = ""
         if exif_raw:
@@ -182,7 +231,7 @@ def analyze_image_forensics(file_bytes: bytes, filename: str) -> ForensicAnalysi
         else:
             checks.append(VerificationCheck(label="No editing software artifacts", passed=True))
 
-        # Check 2: AI Generative model signatures
+        # Check 3: AI Generative model signatures
         found_ai_tag = False
         for ai_sig in AI_GENERATOR_SIGNATURES:
             if ai_sig in raw_text_headers or (software_field and ai_sig in software_field):
@@ -198,15 +247,12 @@ def analyze_image_forensics(file_bytes: bytes, filename: str) -> ForensicAnalysi
         else:
             checks.append(VerificationCheck(label="AI generative pattern test", passed=True))
 
-        # Check 3: Camera Sensor Metadata Integrity
+        # Check 4: Camera Sensor Metadata Integrity
         has_sensor_data = bool(exif_raw and len(exif_raw) >= 3)
         checks.append(VerificationCheck(label="Camera hardware profile valid", passed=has_sensor_data))
         if not has_sensor_data:
             authenticity_score -= 10
             metadata_status = "INCOMPLETE"
-
-        # Check 4: Pixel aspect and noise distribution
-        checks.append(VerificationCheck(label="Pixel noise distribution consistent", passed=True))
 
     except Exception as e:
         logger.warning(f"Forensic inspection error on {filename}: {e}")
@@ -220,6 +266,8 @@ def analyze_image_forensics(file_bytes: bytes, filename: str) -> ForensicAnalysi
         ai_generated_risk=ai_risk,
         editing_software_detected=detected_software,
         metadata_integrity=metadata_status,
+        phash_fingerprint=phash_fingerprint,
+        is_duplicate_claim=is_duplicate,
         forensic_checks=checks
     )
 
