@@ -2,6 +2,7 @@
 reasoning.py
 AI reasoning, cross-evidence intelligence, and forensics graph layer for ClaimAI.
 Phase 3: Multimodal Evidence Graph, Side-by-Side Discrepancy Engine, and Forgery Forensics.
+Supports both Groq (Llama-3.3-70b) and OpenAI (GPT-4o) with graceful heuristic fallback.
 """
 
 import os
@@ -10,7 +11,6 @@ import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from models import (
     ReadinessResponse,
@@ -57,13 +57,37 @@ Output strictly conforming to the ReadinessResponse schema.
 
 
 def _get_llm():
-    """Initializes and returns the ChatOpenAI model instance."""
-    api_key = os.getenv("OPENAI_API_KEY")
-    return ChatOpenAI(
-        model=os.getenv("OPENAI_MODEL", "gpt-4o"),
-        temperature=0.1,
-        api_key=api_key or "sk-dummy"
-    )
+    """Initializes and returns the ChatGroq or ChatOpenAI model instance based on available keys."""
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+
+    if groq_api_key and groq_api_key.strip().startswith("gsk_"):
+        try:
+            from langchain_groq import ChatGroq
+            model_name = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+            logger.info(f"Using Groq LLM: {model_name}")
+            return ChatGroq(
+                model_name=model_name,
+                temperature=0.1,
+                api_key=groq_api_key
+            )
+        except Exception as e:
+            logger.warning(f"Failed to initialize ChatGroq: {e}, attempting OpenAI/fallback.")
+
+    if openai_api_key and openai_api_key.strip().startswith("sk-"):
+        try:
+            from langchain_openai import ChatOpenAI
+            model_name = os.getenv("OPENAI_MODEL", "gpt-4o")
+            logger.info(f"Using OpenAI LLM: {model_name}")
+            return ChatOpenAI(
+                model=model_name,
+                temperature=0.1,
+                api_key=openai_api_key
+            )
+        except Exception as e:
+            logger.warning(f"Failed to initialize ChatOpenAI: {e}")
+
+    return None
 
 
 async def analyze_evidence(evidence_payload: Dict[str, Any]) -> ReadinessResponse:
@@ -119,9 +143,9 @@ async def analyze_evidence(evidence_payload: Dict[str, Any]) -> ReadinessRespons
         ("user", "{user_input}")
     ])
 
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        logger.info("OPENAI_API_KEY not configured. Running Phase 3 enhanced graph reasoning fallback.")
+    llm = _get_llm()
+    if not llm:
+        logger.info("No active GROQ_API_KEY or OPENAI_API_KEY found. Running enhanced graph reasoning fallback.")
         return _fallback_heuristic_analysis(
             incident_description=incident_description,
             invoice_text=invoice_text,
@@ -132,7 +156,6 @@ async def analyze_evidence(evidence_payload: Dict[str, Any]) -> ReadinessRespons
         )
 
     try:
-        llm = _get_llm()
         structured_llm = llm.with_structured_output(ReadinessResponse)
         chain = prompt | structured_llm
         result: ReadinessResponse = await chain.ainvoke({"user_input": user_prompt_content})
