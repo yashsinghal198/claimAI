@@ -36,6 +36,15 @@ export interface CrossDocumentDiscrepancy {
   explanation: string;
 }
 
+export interface ForensicAnalysis {
+  authenticity_score: number;
+  is_tampered: boolean;
+  ai_generated_risk: "LOW" | "MEDIUM" | "HIGH";
+  editing_software_detected?: string | null;
+  metadata_integrity: string;
+  forensic_checks: VerificationCheck[];
+}
+
 export interface ReadinessResponse {
   readiness_score: number;
   verification_checks: VerificationCheck[];
@@ -44,6 +53,7 @@ export interface ReadinessResponse {
   extracted_entities?: ExtractedEntities | null;
   discrepancies?: CrossDocumentDiscrepancy[];
   photo_metadata?: PhotoMetadata[];
+  forensics?: ForensicAnalysis | null;
 }
 
 export interface ClaimFormData {

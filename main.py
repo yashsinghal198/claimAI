@@ -1,7 +1,7 @@
 """
 main.py
 FastAPI gateway server for ClaimAI - Pre-Claim Evidence Intelligence.
-Phase 2: Multipart document ingestion with EXIF metadata parsing & Cross-Document Graph Reasoning.
+Phase 3: Multipart document ingestion with EXIF metadata, Forensics analysis & Cross-Document Graph Reasoning.
 """
 
 import logging
@@ -9,12 +9,13 @@ from typing import List, Optional
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 
-from models import ReadinessResponse, PhotoMetadata
+from models import ReadinessResponse, PhotoMetadata, ForensicAnalysis
 from extractor import (
     extract_text_from_pdf,
     extract_text_from_image,
     extract_text_from_txt,
     extract_image_exif_metadata,
+    analyze_image_forensics,
 )
 from reasoning import analyze_evidence
 
@@ -27,7 +28,7 @@ logger = logging.getLogger("claimai.main")
 app = FastAPI(
     title="ClaimAI — Pre-Claim Evidence Intelligence API",
     description="API gateway for intelligent pre-submission insurance and warranty claim evidence validation.",
-    version="2.0.0"
+    version="3.0.0"
 )
 
 # Configure CORS Middleware
@@ -46,8 +47,14 @@ async def root():
     return {
         "service": "ClaimAI Pre-Claim Evidence Intelligence",
         "status": "online",
-        "version": "2.0.0",
-        "features": ["OCR", "EXIF Analysis", "Cross-Document Discrepancy Graph", "GPT-4o Reasoning"],
+        "version": "3.0.0",
+        "features": [
+            "OCR & PDF Parsing",
+            "EXIF Hardware Metadata",
+            "Forgery & Manipulation Forensics",
+            "Cross-Document Discrepancy Graph",
+            "Carrier-Ready Compliance Audit"
+        ],
         "endpoint": "POST /api/v1/analyze"
     }
 
@@ -83,7 +90,7 @@ async def _parse_upload_file(file: Optional[UploadFile]) -> str:
     response_model=ReadinessResponse,
     status_code=status.HTTP_200_OK,
     tags=["Analysis"],
-    summary="Analyze claim evidence package and return explainable readiness score with discrepancies"
+    summary="Analyze claim evidence package and return explainable readiness score, discrepancies, and forensics"
 )
 async def analyze_claim_evidence(
     incident_description: Optional[str] = Form(None, description="Detailed text narrative describing what happened"),
@@ -92,8 +99,8 @@ async def analyze_claim_evidence(
     damage_photos: Optional[List[UploadFile]] = File(None, description="Damage and product serial photos")
 ):
     """
-    Accepts multipart claim evidence (description, invoice, warranty, damage photos),
-    extracts structured text, EXIF camera metadata, and performs cross-document discrepancy graph reasoning.
+    Accepts multipart claim evidence, extracts structured text, EXIF metadata,
+    runs generative forgery forensics, and performs cross-document discrepancy graph reasoning.
     """
     logger.info("Received request to /api/v1/analyze")
 
@@ -110,9 +117,10 @@ async def analyze_claim_evidence(
             logger.info(f"Parsing warranty document: {warranty.filename}")
             warranty_text = await _parse_upload_file(warranty)
 
-        # 3. Parse Damage Photos OCR & EXIF Metadata
+        # 3. Parse Damage Photos OCR, EXIF & Forensics
         photos_ocr = []
         photo_metadata_list: List[PhotoMetadata] = []
+        overall_forensics: Optional[ForensicAnalysis] = None
 
         if damage_photos:
             for idx, photo in enumerate(damage_photos):
@@ -128,18 +136,24 @@ async def analyze_claim_evidence(
                     exif_data = extract_image_exif_metadata(photo_bytes, photo.filename or f"photo_{idx + 1}.jpg")
                     photo_metadata_list.append(exif_data)
 
+                    # Forensics Analysis
+                    photo_forensics = analyze_image_forensics(photo_bytes, photo.filename or f"photo_{idx + 1}.jpg")
+                    if overall_forensics is None or (photo_forensics.is_tampered and not overall_forensics.is_tampered):
+                        overall_forensics = photo_forensics
+
         # 4. Construct payload for reasoning engine
         evidence_payload = {
             "incident_description": incident_description or "",
             "invoice_text": invoice_text,
             "warranty_text": warranty_text,
             "damage_photos_ocr": photos_ocr,
-            "photo_metadata": photo_metadata_list
+            "photo_metadata": photo_metadata_list,
+            "forensics": overall_forensics
         }
 
         # 5. Run AI Reasoning & Discrepancy Graph Engine
         readiness_result: ReadinessResponse = await analyze_evidence(evidence_payload)
-        logger.info(f"Analysis complete. Readiness score: {readiness_result.readiness_score}, Discrepancies: {len(readiness_result.discrepancies)}")
+        logger.info(f"Analysis complete. Readiness score: {readiness_result.readiness_score}, Authenticity: {readiness_result.forensics.authenticity_score if readiness_result.forensics else 'N/A'}%")
 
         return readiness_result
 

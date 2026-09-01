@@ -1,7 +1,7 @@
 """
 models.py
 Data models and schemas for ClaimAI - Pre-Claim Evidence Intelligence.
-Phase 2: Structured Entities, EXIF Metadata, and Cross-Document Discrepancies.
+Phase 3: Multimodal Entities, EXIF, Discrepancy Graph, and Forgery Forensics.
 """
 
 from typing import List, Literal, Optional
@@ -57,6 +57,33 @@ class CrossDocumentDiscrepancy(BaseModel):
     explanation: str = Field(..., description="Detailed rationale explaining the contradiction")
 
 
+class ForensicAnalysis(BaseModel):
+    """Forensic forgery and tampering analysis results."""
+    authenticity_score: int = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Authenticity & Integrity Index from 0 to 100 percentage"
+    )
+    is_tampered: bool = Field(default=False, description="Whether editing or AI generation artifacts are detected")
+    ai_generated_risk: Literal["LOW", "MEDIUM", "HIGH"] = Field(
+        default="LOW",
+        description="Likelihood of synthetic or AI generated damage visual artifacts"
+    )
+    editing_software_detected: Optional[str] = Field(
+        None,
+        description="Editing software name if detected in EXIF/XMP headers (e.g., Photoshop, Canva, GIMP)"
+    )
+    metadata_integrity: str = Field(
+        default="VERIFIED",
+        description="Metadata status: VERIFIED, INCOMPLETE, or SUSPICIOUS"
+    )
+    forensic_checks: List[VerificationCheck] = Field(
+        default_factory=list,
+        description="Specific forensic checkpoints evaluated"
+    )
+
+
 class ReadinessResponse(BaseModel):
     """Complete claim readiness analysis response."""
     readiness_score: int = Field(
@@ -88,4 +115,8 @@ class ReadinessResponse(BaseModel):
     photo_metadata: List[PhotoMetadata] = Field(
         default_factory=list,
         description="Parsed EXIF camera and timestamp metadata from uploaded photos"
+    )
+    forensics: Optional[ForensicAnalysis] = Field(
+        default=None,
+        description="Generative forgery and image manipulation forensics audit"
     )

@@ -12,18 +12,24 @@ import {
   Zap,
   CheckCircle,
   FileSearch,
+  Download,
+  GitBranch,
+  LayoutDashboard,
 } from "lucide-react";
 
 import { Navbar } from "@/components/Navbar";
 import { DemoPresets, PRESETS } from "@/components/DemoPresets";
 import { Dropzone } from "@/components/Dropzone";
 import { ReadinessGauge } from "@/components/ReadinessGauge";
+import { AuthenticityShield } from "@/components/AuthenticityShield";
 import { DiscrepancyInspector } from "@/components/DiscrepancyInspector";
 import { ExtractedEntitiesCard } from "@/components/ExtractedEntitiesCard";
 import { PhotoMetadataCard } from "@/components/PhotoMetadataCard";
 import { VerificationChecklist } from "@/components/VerificationChecklist";
 import { IssuesFeed } from "@/components/IssuesFeed";
 import { ActionPlan } from "@/components/ActionPlan";
+import { EvidenceGraph } from "@/components/EvidenceGraph";
+import { CarrierExportModal } from "@/components/CarrierExportModal";
 import { VisualScanBanner } from "@/components/VisualScanBanner";
 
 import { ReadinessResponse, DemoPreset } from "@/types";
@@ -43,12 +49,15 @@ export default function ClaimAIDashboard() {
   const [result, setResult] = useState<ReadinessResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Phase 3 UI State
+  const [activeTab, setActiveTab] = useState<"overview" | "graph">("overview");
+  const [showExportModal, setShowExportModal] = useState(false);
+
   // Load a demo scenario
   const handleSelectPreset = (preset: DemoPreset) => {
     setActivePresetId(preset.id);
     setIncidentDescription(preset.incidentDescription);
 
-    // Create synthetic text files to represent uploaded files
     if (preset.invoiceSampleText) {
       const invoiceBlob = new Blob([preset.invoiceSampleText], { type: "text/plain" });
       const invoiceFile = new File([invoiceBlob], "purchase_invoice.txt", { type: "text/plain" });
@@ -65,7 +74,6 @@ export default function ClaimAIDashboard() {
       setWarrantyFiles([]);
     }
 
-    // Synthetic damage photo file
     const photoBlob = new Blob(["SYNTHETIC_IMAGE_BYTES_WITH_OCR_TAGS"], { type: "image/jpeg" });
     const photoFile = new File([photoBlob], preset.photoSampleName, { type: "image/jpeg" });
     setDamagePhotoFiles([photoFile]);
@@ -128,7 +136,7 @@ export default function ClaimAIDashboard() {
           <div className="relative z-10 max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-semibold mb-3">
               <Zap className="w-3.5 h-3.5" />
-              Pre-Submission Evidence Validation Engine
+              Pre-Submission Evidence Validation & Forensics Engine
             </div>
 
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white leading-tight">
@@ -139,7 +147,7 @@ export default function ClaimAIDashboard() {
             </h1>
 
             <p className="text-sm text-slate-400 mt-2.5 leading-relaxed max-w-2xl">
-              ClaimAI cross-references invoices, warranty contracts, photo OCR serial tags, and incident descriptions. Detect contradictions, verify coverage timelines, and boost approval odds.
+              ClaimAI cross-references invoices, warranty contracts, photo OCR serial tags, and incident statements. Detect model conflicts, verify coverage timelines, and export carrier-ready packages.
             </p>
           </div>
         </section>
@@ -257,26 +265,72 @@ export default function ClaimAIDashboard() {
               <VisualScanBanner />
             ) : result ? (
               <div className="space-y-5 animate-in fade-in duration-500">
-                {/* Readiness Score Gauge */}
-                <ReadinessGauge score={result.readiness_score} />
+                {/* View Switcher Tabs & Carrier Export Button */}
+                <div className="flex items-center justify-between p-2 rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-md">
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setActiveTab("overview")}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        activeTab === "overview"
+                          ? "bg-slate-800 text-cyan-400 shadow"
+                          : "text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      <LayoutDashboard className="w-3.5 h-3.5" />
+                      Readiness Overview
+                    </button>
 
-                {/* Side-by-Side Discrepancy Conflict Inspector */}
-                <DiscrepancyInspector discrepancies={result.discrepancies} />
+                    <button
+                      onClick={() => setActiveTab("graph")}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        activeTab === "graph"
+                          ? "bg-slate-800 text-cyan-400 shadow"
+                          : "text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      <GitBranch className="w-3.5 h-3.5" />
+                      Evidence Graph
+                    </button>
+                  </div>
 
-                {/* Parsed Entities Card */}
-                <ExtractedEntitiesCard entities={result.extracted_entities} />
+                  <button
+                    onClick={() => setShowExportModal(true)}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-md shadow-cyan-500/20 transition-all active:scale-[0.99]"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    Export Carrier Package
+                  </button>
+                </div>
 
-                {/* Photo EXIF & Camera Integrity Card */}
-                <PhotoMetadataCard metadataList={result.photo_metadata} />
+                {activeTab === "graph" ? (
+                  <EvidenceGraph result={result} />
+                ) : (
+                  <>
+                    {/* Readiness Score Gauge */}
+                    <ReadinessGauge score={result.readiness_score} />
 
-                {/* Verification Checklist */}
-                <VerificationChecklist checks={result.verification_checks} />
+                    {/* Authenticity & Integrity Shield */}
+                    <AuthenticityShield forensics={result.forensics} />
 
-                {/* Detected Issues */}
-                <IssuesFeed issues={result.issues_detected} />
+                    {/* Side-by-Side Discrepancy Conflict Inspector */}
+                    <DiscrepancyInspector discrepancies={result.discrepancies} />
 
-                {/* Actionable Remediation Plan */}
-                <ActionPlan actions={result.recommended_actions} />
+                    {/* Parsed Entities Card */}
+                    <ExtractedEntitiesCard entities={result.extracted_entities} />
+
+                    {/* Photo EXIF & Camera Integrity Card */}
+                    <PhotoMetadataCard metadataList={result.photo_metadata} />
+
+                    {/* Verification Checklist */}
+                    <VerificationChecklist checks={result.verification_checks} />
+
+                    {/* Detected Issues */}
+                    <IssuesFeed issues={result.issues_detected} />
+
+                    {/* Actionable Remediation Plan */}
+                    <ActionPlan actions={result.recommended_actions} />
+                  </>
+                )}
               </div>
             ) : (
               /* Welcome / Empty State Before First Analysis */
@@ -297,12 +351,12 @@ export default function ClaimAIDashboard() {
 
                 <div className="grid grid-cols-2 gap-3 w-full max-w-sm pt-2 text-left">
                   <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-                    <p className="text-[11px] font-bold text-slate-200">🔍 OCR & EXIF Matching</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Extracts serials, dates & camera timestamps from proofs</p>
+                    <p className="text-[11px] font-bold text-slate-200">🔍 OCR & Forgery Forensics</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Extracts serials, dates & checks visual tampering</p>
                   </div>
                   <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-                    <p className="text-[11px] font-bold text-slate-200">📊 Cross-Document Graph</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Detects model & serial contradictions before submission</p>
+                    <p className="text-[11px] font-bold text-slate-200">📊 Interactive Graph</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Maps cross-document entity topology & contradictions</p>
                   </div>
                 </div>
               </div>
@@ -310,6 +364,14 @@ export default function ClaimAIDashboard() {
           </div>
         </div>
       </main>
+
+      {/* Carrier Export Modal */}
+      {showExportModal && result && (
+        <CarrierExportModal
+          result={result}
+          onClose={() => setShowExportModal(false)}
+        />
+      )}
 
       {/* Footer */}
       <footer className="mt-auto border-t border-slate-900 py-4 px-4 text-center text-xs text-slate-500">
