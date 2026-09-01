@@ -81,8 +81,11 @@ export async function analyzeClaimEvidence(formData: {
 function isGenericFilename(filename: string): boolean {
   if (!filename) return true;
   const lower = filename.toLowerCase();
-  const genericPrefixes = ["screenshot", "img", "dsc", "scan", "document", "file", "upload", "photo", "image"];
-  return genericPrefixes.some((p) => lower.startsWith(p)) || /\d{4}-\d{2}-\d{2}/.test(lower);
+  const genericTerms = [
+    "screenshot", "img", "dsc", "scan", "document", "file", "upload", "photo", "image",
+    "claimai", "invoice", "receipt", "warranty", "test", "detailed", "sample", "copy", "purchase"
+  ];
+  return genericTerms.some((term) => lower.includes(term)) || /\d{4}[-_]\d{2}[-_]\d{2}/.test(lower);
 }
 
 function generateClientHeuristicFallback(formData: {
