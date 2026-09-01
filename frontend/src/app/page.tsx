@@ -18,7 +18,9 @@ import { Navbar } from "@/components/Navbar";
 import { DemoPresets, PRESETS } from "@/components/DemoPresets";
 import { Dropzone } from "@/components/Dropzone";
 import { ReadinessGauge } from "@/components/ReadinessGauge";
+import { DiscrepancyInspector } from "@/components/DiscrepancyInspector";
 import { ExtractedEntitiesCard } from "@/components/ExtractedEntitiesCard";
+import { PhotoMetadataCard } from "@/components/PhotoMetadataCard";
 import { VerificationChecklist } from "@/components/VerificationChecklist";
 import { IssuesFeed } from "@/components/IssuesFeed";
 import { ActionPlan } from "@/components/ActionPlan";
@@ -176,7 +178,7 @@ export default function ClaimAIDashboard() {
                     rows={4}
                     value={incidentDescription}
                     onChange={(e) => setIncidentDescription(e.target.value)}
-                    placeholder="Describe how damage occurred, incident date (e.g. 2024-08-14), location, and any relevant details..."
+                    placeholder="Describe how damage occurred, incident date (e.g. 2024-07-18), location, and any relevant details..."
                     className="w-full text-xs p-3 rounded-xl bg-slate-950/70 border border-slate-800 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500/80 focus:ring-1 focus:ring-cyan-500/50 transition-all leading-relaxed"
                   />
                 </div>
@@ -258,8 +260,14 @@ export default function ClaimAIDashboard() {
                 {/* Readiness Score Gauge */}
                 <ReadinessGauge score={result.readiness_score} />
 
+                {/* Side-by-Side Discrepancy Conflict Inspector */}
+                <DiscrepancyInspector discrepancies={result.discrepancies} />
+
                 {/* Parsed Entities Card */}
                 <ExtractedEntitiesCard entities={result.extracted_entities} />
+
+                {/* Photo EXIF & Camera Integrity Card */}
+                <PhotoMetadataCard metadataList={result.photo_metadata} />
 
                 {/* Verification Checklist */}
                 <VerificationChecklist checks={result.verification_checks} />
@@ -289,12 +297,12 @@ export default function ClaimAIDashboard() {
 
                 <div className="grid grid-cols-2 gap-3 w-full max-w-sm pt-2 text-left">
                   <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-                    <p className="text-[11px] font-bold text-slate-200">🔍 OCR Tag Matching</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">RapidOCR extracts serials & dates from image proofs</p>
+                    <p className="text-[11px] font-bold text-slate-200">🔍 OCR & EXIF Matching</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Extracts serials, dates & camera timestamps from proofs</p>
                   </div>
                   <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-                    <p className="text-[11px] font-bold text-slate-200">📊 Graph Reasoning</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">GPT-4o detects contradictions before insurer denial</p>
+                    <p className="text-[11px] font-bold text-slate-200">📊 Cross-Document Graph</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Detects model & serial contradictions before submission</p>
                   </div>
                 </div>
               </div>

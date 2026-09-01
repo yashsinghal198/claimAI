@@ -1,7 +1,7 @@
 """
 main.py
 FastAPI gateway server for ClaimAI - Pre-Claim Evidence Intelligence.
-Provides CORS-enabled REST endpoints for multimodal claim document ingestion and analysis.
+Phase 2: Multipart document ingestion with EXIF metadata parsing & Cross-Document Graph Reasoning.
 """
 
 import logging
@@ -9,11 +9,15 @@ from typing import List, Optional
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 
-from models import ReadinessResponse
-from extractor import extract_text_from_pdf, extract_text_from_image, extract_text_from_txt
+from models import ReadinessResponse, PhotoMetadata
+from extractor import (
+    extract_text_from_pdf,
+    extract_text_from_image,
+    extract_text_from_txt,
+    extract_image_exif_metadata,
+)
 from reasoning import analyze_evidence
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
@@ -23,7 +27,7 @@ logger = logging.getLogger("claimai.main")
 app = FastAPI(
     title="ClaimAI — Pre-Claim Evidence Intelligence API",
     description="API gateway for intelligent pre-submission insurance and warranty claim evidence validation.",
-    version="1.0.0"
+    version="2.0.0"
 )
 
 # Configure CORS Middleware
@@ -42,7 +46,8 @@ async def root():
     return {
         "service": "ClaimAI Pre-Claim Evidence Intelligence",
         "status": "online",
-        "version": "1.0.0",
+        "version": "2.0.0",
+        "features": ["OCR", "EXIF Analysis", "Cross-Document Discrepancy Graph", "GPT-4o Reasoning"],
         "endpoint": "POST /api/v1/analyze"
     }
 
@@ -70,7 +75,6 @@ async def _parse_upload_file(file: Optional[UploadFile]) -> str:
     elif filename.endswith(".txt") or "text/plain" in content_type:
         return extract_text_from_txt(file_bytes)
     else:
-        # Assume image for JPG, PNG, WEBP, TIFF, or other binary visual formats
         return await extract_text_from_image(file_bytes)
 
 
@@ -79,7 +83,7 @@ async def _parse_upload_file(file: Optional[UploadFile]) -> str:
     response_model=ReadinessResponse,
     status_code=status.HTTP_200_OK,
     tags=["Analysis"],
-    summary="Analyze claim evidence package and return explainable readiness score"
+    summary="Analyze claim evidence package and return explainable readiness score with discrepancies"
 )
 async def analyze_claim_evidence(
     incident_description: Optional[str] = Form(None, description="Detailed text narrative describing what happened"),
@@ -89,7 +93,7 @@ async def analyze_claim_evidence(
 ):
     """
     Accepts multipart claim evidence (description, invoice, warranty, damage photos),
-    extracts structured text & OCR data, and performs AI cross-document consistency reasoning.
+    extracts structured text, EXIF camera metadata, and performs cross-document discrepancy graph reasoning.
     """
     logger.info("Received request to /api/v1/analyze")
 
@@ -106,26 +110,36 @@ async def analyze_claim_evidence(
             logger.info(f"Parsing warranty document: {warranty.filename}")
             warranty_text = await _parse_upload_file(warranty)
 
-        # 3. Parse Damage Photos OCR
+        # 3. Parse Damage Photos OCR & EXIF Metadata
         photos_ocr = []
+        photo_metadata_list: List[PhotoMetadata] = []
+
         if damage_photos:
             for idx, photo in enumerate(damage_photos):
                 logger.info(f"Processing photo {idx + 1}: {photo.filename}")
-                photo_text = await _parse_upload_file(photo)
-                if photo_text:
-                    photos_ocr.append(photo_text)
+                photo_bytes = await photo.read()
+                if photo_bytes:
+                    # OCR Text
+                    ocr_text = await extract_text_from_image(photo_bytes)
+                    if ocr_text:
+                        photos_ocr.append(ocr_text)
+
+                    # EXIF Metadata
+                    exif_data = extract_image_exif_metadata(photo_bytes, photo.filename or f"photo_{idx + 1}.jpg")
+                    photo_metadata_list.append(exif_data)
 
         # 4. Construct payload for reasoning engine
         evidence_payload = {
             "incident_description": incident_description or "",
             "invoice_text": invoice_text,
             "warranty_text": warranty_text,
-            "damage_photos_ocr": photos_ocr
+            "damage_photos_ocr": photos_ocr,
+            "photo_metadata": photo_metadata_list
         }
 
-        # 5. Run AI Reasoning Engine
+        # 5. Run AI Reasoning & Discrepancy Graph Engine
         readiness_result: ReadinessResponse = await analyze_evidence(evidence_payload)
-        logger.info(f"Analysis complete. Readiness score: {readiness_result.readiness_score}")
+        logger.info(f"Analysis complete. Readiness score: {readiness_result.readiness_score}, Discrepancies: {len(readiness_result.discrepancies)}")
 
         return readiness_result
 

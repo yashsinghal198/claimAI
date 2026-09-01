@@ -1,7 +1,7 @@
 """
 models.py
 Data models and schemas for ClaimAI - Pre-Claim Evidence Intelligence.
-Strict Pydantic v2 models matching the structured API output specification.
+Phase 2: Structured Entities, EXIF Metadata, and Cross-Document Discrepancies.
 """
 
 from typing import List, Literal, Optional
@@ -36,6 +36,27 @@ class ExtractedEntities(BaseModel):
     damage_type: Optional[str] = Field(None, description="Summary of physical/liquid/electronic damage")
 
 
+class PhotoMetadata(BaseModel):
+    """EXIF metadata parsed from uploaded image evidence."""
+    filename: str = Field(..., description="Uploaded image filename")
+    capture_date: Optional[str] = Field(None, description="Original camera capture datetime from EXIF")
+    camera_make: Optional[str] = Field(None, description="Camera manufacturer (e.g. Apple, Samsung, Sony)")
+    camera_model: Optional[str] = Field(None, description="Camera model (e.g. iPhone 15 Pro)")
+    has_gps: bool = Field(default=False, description="Whether GPS location metadata is embedded")
+    gps_coordinates: Optional[str] = Field(None, description="Formatted GPS latitude & longitude if present")
+
+
+class CrossDocumentDiscrepancy(BaseModel):
+    """Side-by-side contradiction detected across evidence documents."""
+    field: str = Field(..., description="Discrepancy category (e.g. 'Product Model', 'Serial Number', 'Date Ordering')")
+    source_a: str = Field(..., description="First evidence source (e.g. 'Purchase Invoice')")
+    value_a: str = Field(..., description="Value found in Source A (e.g. 'Dell XPS 15 9530')")
+    source_b: str = Field(..., description="Second evidence source (e.g. 'Warranty Policy')")
+    value_b: str = Field(..., description="Conflicting value found in Source B (e.g. 'Dell XPS 13 9315')")
+    severity: Literal["HIGH", "MEDIUM", "LOW"] = Field(default="HIGH", description="Impact severity of discrepancy")
+    explanation: str = Field(..., description="Detailed rationale explaining the contradiction")
+
+
 class ReadinessResponse(BaseModel):
     """Complete claim readiness analysis response."""
     readiness_score: int = Field(
@@ -59,4 +80,12 @@ class ReadinessResponse(BaseModel):
     extracted_entities: Optional[ExtractedEntities] = Field(
         default=None,
         description="Structured key-value entities parsed from multimodal evidence"
+    )
+    discrepancies: List[CrossDocumentDiscrepancy] = Field(
+        default_factory=list,
+        description="Side-by-side conflicting evidence data points across documents"
+    )
+    photo_metadata: List[PhotoMetadata] = Field(
+        default_factory=list,
+        description="Parsed EXIF camera and timestamp metadata from uploaded photos"
     )
