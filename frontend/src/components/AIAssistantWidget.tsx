@@ -127,21 +127,36 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
         throw new Error("API call returned error");
       }
     } catch {
-      // Offline fallback stream
-      const refined = statement
-        ? `${statement}. Context: ${userText}`
-        : `Incident occurred on device: ${userText}`;
-      setStatement(refined);
-      onUpdateStatement(refined);
+      // Offline human fallback stream
+      const lowerInput = userText.toLowerCase().trim();
+      const isGreeting = ["hi", "hello", "hey", "hola", "sup", "good morning"].includes(lowerInput);
 
-      streamBotResponse(
-        `I've noted that: "${userText}". I updated your incident statement in real time. Are there any photos or serial labels you'd like to link?`
-      );
-      setChips([
-        "⚡ All details provided",
-        "📸 Linking camera photos",
-        "🕒 Confirm incident date",
-      ]);
+      if (isGreeting) {
+        streamBotResponse(
+          "Hey there! 👋 I'm your ClaimAI intake assistant. Tell me what happened to your device, or click one of the quick options below!"
+        );
+        setChips([
+          "Dropped laptop / phone",
+          "Screen cracked after fall",
+          "Liquid spilled on keyboard",
+          "No liquid, dry impact",
+        ]);
+      } else {
+        const refined = statement
+          ? `${statement}. Context: ${userText}`
+          : `Incident details: ${userText}`;
+        setStatement(refined);
+        onUpdateStatement(refined);
+
+        streamBotResponse(
+          `Got it! I've recorded that: "${userText}". I updated your incident statement in real time. Was there any liquid involved, or was the device in a protective case?`
+        );
+        setChips([
+          "No liquid involved, dry impact",
+          "Protective case was installed",
+          "Powered off immediately",
+        ]);
+      }
     }
   };
 

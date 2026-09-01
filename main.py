@@ -1,7 +1,7 @@
 """
 main.py
 FastAPI gateway server for ClaimAI - Pre-Claim Evidence Intelligence.
-Final Phase: Multipart Ingestion, Forensics with pHash, and Conversational Intake Interviewer.
+Final Phase: Multipart Ingestion, Forensics with pHash, and Human Conversational Intake Interviewer.
 """
 
 import os
@@ -36,7 +36,7 @@ logger = logging.getLogger("claimai.main")
 app = FastAPI(
     title="ClaimAI — Pre-Claim Evidence Intelligence API",
     description="API gateway for intelligent pre-submission insurance and warranty claim evidence validation.",
-    version="3.5.0"
+    version="3.6.0"
 )
 
 # Configure CORS Middleware
@@ -48,6 +48,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+GREETINGS = {"hi", "hello", "hey", "hey there", "hola", "sup", "good morning", "good evening", "hi there", "who are you", "help"}
+
 
 @app.get("/", tags=["Health"])
 async def root():
@@ -55,7 +57,7 @@ async def root():
     return {
         "service": "ClaimAI Pre-Claim Evidence Intelligence",
         "status": "online",
-        "version": "3.5.0",
+        "version": "3.6.0",
         "features": [
             "OCR & PDF Parsing",
             "EXIF Hardware Metadata",
@@ -107,48 +109,90 @@ async def _parse_upload_file(file: Optional[UploadFile]) -> str:
 )
 async def interview_claimant(req: InterviewRequest):
     """
-    Conversational AI interviewer that reviews the user's initial statement,
-    asks clarifying follow-up questions to uncover risk details (liquid, location, case),
-    and refines the incident statement in real-time.
+    Human-like Conversational AI interviewer that greets the user naturally,
+    reviews the incident statement, asks clarifying follow-up questions,
+    and refines the claim narrative in real-time.
     """
     current_statement = req.current_statement.strip()
-    last_response = (req.last_user_response or "").strip()
+    last_response = (req.last_user_response or "").strip().lower().strip("!.,?")
     history = req.messages
 
-    # Heuristic fallback if LLM is unavailable
-    fallback_chips = ["Indoors on desk", "No liquid involved", "Protective case was on", "Device powered off immediately"]
-    
-    # Check if statement already has essential details
-    has_date = any(k in current_statement for k in ["2024", "2025", "2026", "yesterday", "last week", "date"])
-    has_location = any(k in current_statement.lower() for k in ["desk", "floor", "office", "home", "car", "room", "table"])
-    has_mechanics = any(k in current_statement.lower() for k in ["drop", "crack", "spill", "fell", "shatter", "impact"])
+    # 1. Handle Greetings & Small Talk naturally without corrupting the statement
+    if last_response in GREETINGS or not last_response:
+        reply = (
+            "Hey there! 👋 I'm your ClaimAI intake specialist. I'm here to help you build a bulletproof claim statement and spot any tricky document mismatches before you submit.\n\n"
+            "What happened to your device? Feel free to describe the incident or pick one of the options below!"
+        )
+        if current_statement:
+            reply = (
+                f"Hey! 👋 I see you already have a draft statement: \"{current_statement}\".\n\n"
+                "Let's make sure it's 100% carrier-ready. Was there any liquid exposure or spillage involved when this happened?"
+            )
+        return InterviewResponse(
+            assistant_reply=reply,
+            enhanced_statement=current_statement,
+            clarifying_chips=[
+                "Dropped laptop / phone",
+                "Screen shattered after fall",
+                "Liquid spilled on device",
+                "No liquid, dry impact"
+            ],
+            is_statement_complete=False
+        )
 
-    # Enhance statement with last user reply if provided
+    # 2. Check if user is asking how ClaimAI works or what to do
+    if any(q in last_response for q in ["how it works", "what do you do", "what is claimai", "what to do"]):
+        return InterviewResponse(
+            assistant_reply=(
+                "Great question! 💡 ClaimAI scans your purchase receipt, warranty policy, and damage photos using OCR & AI graph reasoning. "
+                "We calculate your Readiness Score (0-100%), detect model or serial mismatches, check photo EXIF timestamps, and generate a carrier-ready audit package.\n\n"
+                "To get started, tell me what happened to your device or upload your invoice!"
+            ),
+            enhanced_statement=current_statement,
+            clarifying_chips=["Dropped my device", "Model mismatch question", "How to upload files"],
+            is_statement_complete=False
+        )
+
+    # 3. Enhance statement with genuine incident facts
     enhanced = current_statement
-    if last_response and last_response not in current_statement:
-        enhanced = f"{current_statement}. Additional context: {last_response}".strip(". ") + "."
+    if last_response and last_response not in GREETINGS:
+        if current_statement:
+            if last_response not in current_statement.lower():
+                enhanced = f"{current_statement}. Context: {req.last_user_response.strip()}".strip(". ") + "."
+        else:
+            enhanced = req.last_user_response.strip()
 
     llm = _get_llm()
     if not llm:
-        if not has_location:
+        # Smart heuristic human-like conversational engine
+        lower_enhanced = enhanced.lower()
+
+        if not any(k in lower_enhanced for k in ["desk", "floor", "office", "home", "car", "room", "table", "ground", "outdoors"]):
             return InterviewResponse(
-                assistant_reply="Where did the incident occur? Was it indoors (e.g. office/home desk) or outdoors?",
+                assistant_reply=f"Got it! I've updated your statement. 📍 Quick question: Where did this happen? (For example: indoors at an office desk, or outdoors on concrete?)",
                 enhanced_statement=enhanced,
-                clarifying_chips=["Indoors at my office desk", "At home in living room", "Outdoors while commuting"],
+                clarifying_chips=["Indoors at my office desk", "At home on living room floor", "Outdoors on sidewalk"],
                 is_statement_complete=False
             )
-        elif not ("liquid" in enhanced.lower() or "water" in enhanced.lower()):
+        elif not any(k in lower_enhanced for k in ["liquid", "water", "coffee", "spill", "dry", "splash"]):
             return InterviewResponse(
-                assistant_reply="Was there any liquid exposure or spillage involved during or after the drop?",
+                assistant_reply="Understood! Was there any liquid or moisture involved during or after the impact?",
                 enhanced_statement=enhanced,
-                clarifying_chips=["No liquid exposure whatsoever", "Minor water splash", "Coffee/beverage spill"],
+                clarifying_chips=["No liquid involved, dry impact", "Minor water splash", "Liquid spilled on keyboard"],
+                is_statement_complete=False
+            )
+        elif not any(k in lower_enhanced for k in ["case", "cover", "protector", "bare"]):
+            return InterviewResponse(
+                assistant_reply="Almost complete! Did the device have a protective case or screen protector on when it fell?",
+                enhanced_statement=enhanced,
+                clarifying_chips=["Protective case was installed", "No case, bare device", "Screen protector cracked"],
                 is_statement_complete=False
             )
         else:
             return InterviewResponse(
-                assistant_reply="Thank you! Your incident narrative now contains clear timeline, location, and risk context.",
+                assistant_reply="Awesome! Your incident narrative now contains clear timeline, location, and risk context. Your statement is carrier-ready!",
                 enhanced_statement=enhanced,
-                clarifying_chips=["Use this refined statement", "Add more details"],
+                clarifying_chips=["Looks perfect!", "Add more details"],
                 is_statement_complete=True
             )
 
@@ -156,12 +200,13 @@ async def interview_claimant(req: InterviewRequest):
     try:
         from langchain_core.prompts import ChatPromptTemplate
         prompt = ChatPromptTemplate.from_messages([
-            ("system", """You are the Claims Intake Interviewer Agent for ClaimAI.
-Your goal is to politely ask 1 focused, clarifying question to extract missing risk and timeline details from a user's claim incident statement.
-If the statement is already detailed and complete, set is_statement_complete=True.
-Always provide 3 helpful quick-reply answer chips.
-Refine the enhanced_statement to be professional, chronological, and carrier-ready."""),
-            ("user", f"Current Statement: {current_statement}\nLast User Input: {last_response}\nChat History: {[m.model_dump() for m in history]}")
+            ("system", """You are a warm, empathetic, and professional Insurance Claims Specialist AI for ClaimAI.
+Respond naturally like a friendly human expert guiding a claimant through their intake.
+Never say 'Noted...' mechanically. Acknowledge what the user said with empathy.
+Ask 1 focused follow-up question to clarify missing risk details (location, liquid, case, timeline).
+Always provide 3 helpful, natural quick-reply answer chips.
+Refine the enhanced_statement to be clear, chronological, and professional."""),
+            ("user", f"Current Statement: {current_statement}\nLast User Input: {req.last_user_response}\nChat History: {[m.model_dump() for m in history]}")
         ])
         structured_llm = llm.with_structured_output(InterviewResponse)
         chain = prompt | structured_llm
@@ -170,9 +215,9 @@ Refine the enhanced_statement to be professional, chronological, and carrier-rea
     except Exception as e:
         logger.warning(f"LLM interview failed, using heuristic: {e}")
         return InterviewResponse(
-            assistant_reply="Could you clarify if any liquid was involved, or if the device had a protective case?",
+            assistant_reply="Got it! I've recorded that detail. Was any liquid involved, or was it a dry surface impact?",
             enhanced_statement=enhanced,
-            clarifying_chips=["No liquid, dropped on carpet", "Protective case was installed", "Dry surface impact"],
+            clarifying_chips=["No liquid, dry impact", "Protective case was installed", "Powered off immediately"],
             is_statement_complete=True
         )
 
