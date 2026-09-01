@@ -173,6 +173,9 @@ async def analyze_evidence(evidence_payload: Dict[str, Any]) -> ReadinessRespons
             os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
             "llama-3.3-70b-versatile",
             "llama-3.1-8b-instant",
+            "llama3-70b-8192",
+            "llama3-8b-8192",
+            "mixtral-8x7b-32768",
         ]
         for g_model in models_to_try:
             try:
@@ -265,11 +268,24 @@ def _detect_product_name(text: str) -> Optional[str]:
     if not text:
         return None
 
-    # Key-Value regex match (e.g. Product Name ClaimAI Pro X1 Smartphone)
-    kv_match = re.search(r"(?:Product Name|Product / Description|Product|Item Description|Device Name)[:\s\t]+([^\n\r,]+)", text, re.IGNORECASE)
-    if kv_match:
-        val = kv_match.group(1).strip()
-        if val and not val.lower().startswith("screenshot") and len(val) > 2:
+    invalid_keywords = [
+        "qty", "amount", "unit price", "screenshot", "subtotal", "#",
+        "warranty", "limited", "policy", "document", "certificate", "number", "details", "code", "no."
+    ]
+
+    # 1. First check explicit "Product Name ..." label
+    pn_match = re.search(r"(?:Product Name)[:\s\t]+([^\n\r,]+)", text, re.IGNORECASE)
+    if pn_match:
+        val = pn_match.group(1).strip()
+        if val and not any(kw in val.lower() for kw in invalid_keywords):
+            return val
+
+    # 2. Generic Key-Value regex matches
+    kv_matches = re.findall(r"(?:Product Name|Product / Description|Product|Item Description|Device Name)[:\s\t]+([^\n\r,]+)", text, re.IGNORECASE)
+    for raw_val in kv_matches:
+        val = raw_val.strip()
+        lower_val = val.lower()
+        if val and not any(kw in lower_val for kw in invalid_keywords) and len(val) > 2:
             return val
 
     lower = text.lower()
