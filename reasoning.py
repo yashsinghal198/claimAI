@@ -361,10 +361,16 @@ def _fallback_heuristic_analysis(
         invoice_serial = serial_match.group(1).strip()
 
     # 3. Dynamic Date Extraction
-    purchase_dt = _extract_date_from_text(invoice_text) or _extract_date_from_text(combined_text)
+    purchase_dt = _extract_date_from_text(invoice_text) or _extract_date_from_text(warranty_text)
     purchase_date_str = purchase_dt.strftime("%Y-%m-%d") if purchase_dt else None
 
-    incident_dt = _extract_date_from_text(incident_description) or _extract_date_from_text(combined_text)
+    # Incident date: ONLY from user's incident statement narrative or explicit "Incident Date: ..." field
+    incident_dt = _extract_date_from_text(incident_description)
+    if not incident_dt:
+        inc_match = re.search(r"(?:Incident Date|Date of Incident|Claim Date|Occurrence Date)[:\s\t]+([^\n\r,]+)", combined_text, re.IGNORECASE)
+        if inc_match:
+            incident_dt = _extract_date_from_text(inc_match.group(1))
+
     incident_date_str = incident_dt.strftime("%Y-%m-%d") if incident_dt else None
 
     # Check 1: Ownership / Invoice

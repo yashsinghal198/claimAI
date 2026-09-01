@@ -136,7 +136,7 @@ function generateClientHeuristicFallback(formData: {
 
   // Extract dates
   const dateMatch = text.match(/\b(202[0-9]-[0-1][0-9]-[0-3][0-9])\b/) || text.match(/\b(202[0-9])\b/);
-  const derivedIncidentDate = isCleanCompletePreset ? "2024-08-14" : (dateMatch ? dateMatch[0] : null);
+  const derivedIncidentDate = isCleanCompletePreset ? "2024-08-14" : (hasText && dateMatch ? dateMatch[0] : null);
   const derivedPurchaseDate = isCleanCompletePreset ? "2024-02-10" : (hasInvoice && dateMatch ? dateMatch[0] : null);
 
   // Calculate dynamic score based on strict evidence presence
