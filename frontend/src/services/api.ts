@@ -4,11 +4,14 @@ const LOCAL_API_URL = "http://localhost:8000";
 const PRODUCTION_API_URL = process.env.NEXT_PUBLIC_API_URL || "https://claimai-backend.onrender.com";
 
 export async function getApiBaseUrl(): Promise<string> {
+  if (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
+    return LOCAL_API_URL;
+  }
   try {
     const res = await fetch(`${LOCAL_API_URL}/health`, { method: "GET", cache: "no-store" });
     if (res.ok) return LOCAL_API_URL;
   } catch {
-    // Local API not active, use production URL
+    // Local API not active
   }
   return PRODUCTION_API_URL;
 }
