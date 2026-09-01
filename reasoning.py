@@ -7,6 +7,7 @@ Supports both Groq (Llama-3.3-70b) and OpenAI (GPT-4o) with graceful heuristic f
 
 import os
 import re
+import asyncio
 import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime
@@ -64,17 +65,28 @@ def _get_llm():
     if groq_api_key and groq_api_key.strip().startswith("gsk_"):
         try:
             from langchain_groq import ChatGroq
-            model_name = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
-            logger.info(f"Using Groq LLM: {model_name}")
-            return ChatGroq(
-                model_name=model_name,
-                temperature=0.1,
-                api_key=groq_api_key
-            )
+            candidate_models = [
+                os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+                "llama-3.3-70b-versatile",
+                "gemma2-9b-it",
+                "llama-3.1-8b-instant",
+            ]
+            for model_name in candidate_models:
+                if not model_name:
+                    continue
+                try:
+                    logger.info(f"Attempting Groq LLM model: {model_name}")
+                    return ChatGroq(
+                        model_name=model_name,
+                        temperature=0.1,
+                        api_key=groq_api_key
+                    )
+                except Exception as me:
+                    logger.warning(f"Groq model {model_name} failed: {me}")
         except Exception as e:
-            logger.warning(f"Failed to initialize ChatGroq: {e}, attempting OpenAI/fallback.")
+            logger.warning(f"Failed to initialize ChatGroq ({e}), attempting OpenAI/fallback.")
 
-    if openai_api_key and openai_api_key.strip().startswith("sk-"):
+    if openai_api_key and openai_api_key.strip().startswith("sk-") and "your_" not in openai_api_key:
         try:
             from langchain_openai import ChatOpenAI
             model_name = os.getenv("OPENAI_MODEL", "gpt-4o")
@@ -143,49 +155,126 @@ async def analyze_evidence(evidence_payload: Dict[str, Any]) -> ReadinessRespons
         ("user", "{user_input}")
     ])
 
-    llm = _get_llm()
-    if not llm:
-        logger.info("No active GROQ_API_KEY or OPENAI_API_KEY found. Running enhanced graph reasoning fallback.")
-        return _fallback_heuristic_analysis(
-            incident_description=incident_description,
-            invoice_text=invoice_text,
-            warranty_text=warranty_text,
-            photos_text=photos_text,
-            photo_metadata_list=photo_metadata_list,
-            forensics=forensics
-        )
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    openai_api_key = os.getenv("OPENAI_API_KEY")
 
-    try:
-        structured_llm = llm.with_structured_output(ReadinessResponse)
-        chain = prompt | structured_llm
-        result: ReadinessResponse = await chain.ainvoke({"user_input": user_prompt_content})
-        if not result.photo_metadata and photo_metadata_list:
-            result.photo_metadata = photo_metadata_list
-        if not result.forensics and forensics:
-            result.forensics = forensics
-        return result
-    except Exception as e:
-        logger.error(f"Error during LLM reasoning execution: {e}", exc_info=True)
-        return _fallback_heuristic_analysis(
-            incident_description=incident_description,
-            invoice_text=invoice_text,
-            warranty_text=warranty_text,
-            photos_text=photos_text,
-            photo_metadata_list=photo_metadata_list,
-            forensics=forensics,
-            error_note=str(e)
-        )
+    groq_models = [
+        os.getenv("GROQ_MODEL", "llama-3.3-70b-specdec"),
+        "llama-3.3-70b-specdec",
+        "llama-3.2-11b-vision-preview",
+        "deepseek-r1-distill-llama-70b",
+        "qwen-2.5-32b",
+        "llama-3.2-3b-preview",
+    ]
+
+    if groq_api_key and groq_api_key.strip().startswith("gsk_"):
+        from langchain_groq import ChatGroq
+        models_to_try = [
+            os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+            "llama-3.3-70b-versatile",
+            "llama-3.1-8b-instant",
+        ]
+        for g_model in models_to_try:
+            try:
+                logger.info(f"Attempting ChatGroq model: {g_model}")
+                groq_llm = ChatGroq(
+                    model_name=g_model,
+                    temperature=0.1,
+                    api_key=groq_api_key
+                )
+                structured_llm = groq_llm.with_structured_output(ReadinessResponse)
+                chain = prompt | structured_llm
+                result: ReadinessResponse = await asyncio.wait_for(
+                    chain.ainvoke({"user_input": user_prompt_content}),
+                    timeout=8.0
+                )
+                if not result.photo_metadata and photo_metadata_list:
+                    result.photo_metadata = photo_metadata_list
+                if not result.forensics and forensics:
+                    result.forensics = forensics
+                return result
+            except Exception as ge:
+                logger.warning(f"Groq model {g_model} failed ({ge}), trying next candidate...")
+
+    if openai_api_key and openai_api_key.strip().startswith("sk-") and "your_" not in openai_api_key:
+        try:
+            from langchain_openai import ChatOpenAI
+            openai_llm = ChatOpenAI(model=os.getenv("OPENAI_MODEL", "gpt-4o"), temperature=0.1, api_key=openai_api_key)
+            structured_llm = openai_llm.with_structured_output(ReadinessResponse)
+            chain = prompt | structured_llm
+            result: ReadinessResponse = await asyncio.wait_for(
+                chain.ainvoke({"user_input": user_prompt_content}),
+                timeout=8.0
+            )
+            return result
+        except Exception as oe:
+            logger.warning(f"OpenAI LLM failed: {oe}")
+
+    logger.info("Running dynamic NLP heuristic graph analysis fallback.")
+    return _fallback_heuristic_analysis(
+        incident_description=incident_description,
+        invoice_text=invoice_text,
+        warranty_text=warranty_text,
+        photos_text=photos_text,
+        photo_metadata_list=photo_metadata_list,
+        forensics=forensics
+    )
 
 
 def _extract_date_from_text(text: str) -> Optional[datetime]:
-    """Helper to detect dates in YYYY-MM-DD or standard formats."""
-    match = re.search(r"\b(20\d{2}[-/]\d{1,2}[-/]\d{1,2})\b", text)
+    """Helper to extract a YYYY-MM-DD or MM/DD/YYYY date from text."""
+    if not text:
+        return None
+    match = re.search(r"\b(202[0-9])[-/](0[1-9]|1[0-2])[-/](0[1-9]|[12][0-9]|3[01])\b", text)
     if match:
+        date_str = match.group(0).replace("/", "-")
         try:
-            date_str = match.group(1).replace("/", "-")
             return datetime.strptime(date_str, "%Y-%m-%d")
         except ValueError:
             pass
+    return None
+
+
+def _detect_product_name(text: str) -> Optional[str]:
+    """Dynamically extracts hardware product names from OCR / invoice / statement text."""
+    if not text:
+        return None
+    lower = text.lower()
+    
+    known_products = [
+        ("dell inspiron 15", "Dell Inspiron 15"),
+        ("dell inspiron", "Dell Inspiron Laptop"),
+        ("dell xps 15", "Dell XPS 15"),
+        ("dell xps 13", "Dell XPS 13"),
+        ("dell xps", "Dell XPS Laptop"),
+        ("macbook pro m3", "MacBook Pro M3"),
+        ("macbook pro", "Apple MacBook Pro"),
+        ("macbook air", "Apple MacBook Air"),
+        ("iphone 15 pro", "iPhone 15 Pro"),
+        ("iphone 15", "iPhone 15"),
+        ("iphone", "Apple iPhone"),
+        ("galaxy s24 ultra", "Galaxy S24 Ultra"),
+        ("galaxy s24", "Galaxy S24"),
+        ("galaxy", "Samsung Galaxy Device"),
+        ("ipad pro", "Apple iPad Pro"),
+        ("ipad", "Apple iPad"),
+        ("thinkpad", "Lenovo ThinkPad"),
+        ("hp envy", "HP Envy Laptop"),
+        ("hp pavilion", "HP Pavilion"),
+        ("asus rog", "Asus ROG Gaming Laptop"),
+        ("playstation 5", "Sony PlayStation 5"),
+        ("xbox series", "Microsoft Xbox Series X"),
+    ]
+
+    for key, name in known_products:
+        if key in lower:
+            return name
+
+    # Generic hardware keywords extraction
+    for kw in ["laptop", "smartphone", "phone", "tablet", "monitor", "television", "tv", "camera", "keyboard", "watch", "device"]:
+        if kw in lower:
+            return f"Uploaded {kw.capitalize()}"
+
     return None
 
 
@@ -198,47 +287,31 @@ def _fallback_heuristic_analysis(
     forensics: Optional[ForensicAnalysis] = None,
     error_note: str = ""
 ) -> ReadinessResponse:
-    """Enhanced Phase 3 heuristic rules with forensics integration and discrepancy matching."""
+    """Dynamic NLP and heuristic reasoning engine parsing actual user uploads."""
     checks = []
     issues = []
     actions = []
     discrepancies: List[CrossDocumentDiscrepancy] = []
     score = 100
 
-    # Extract Models
-    invoice_model = None
-    warranty_model = None
+    combined_text = f"{incident_description}\n{invoice_text}\n{warranty_text}\n{photos_text}"
 
-    if "dell xps 15" in invoice_text.lower():
-        invoice_model = "Dell XPS 15"
-    elif "macbook pro m3" in invoice_text.lower():
-        invoice_model = "MacBook Pro M3"
-    elif "galaxy s24 ultra" in invoice_text.lower():
-        invoice_model = "Galaxy S24 Ultra"
+    # 1. Dynamic Product Identity Extraction
+    invoice_model = _detect_product_name(invoice_text) or _detect_product_name(combined_text)
+    warranty_model = _detect_product_name(warranty_text)
 
-    if "dell xps 13" in warranty_text.lower():
-        warranty_model = "Dell XPS 13"
-    elif "macbook pro m3" in warranty_text.lower():
-        warranty_model = "MacBook Pro M3"
-    elif "galaxy s24 standard" in warranty_text.lower():
-        warranty_model = "Galaxy S24 Standard"
-
-    # Extract Serials
+    # 2. Dynamic Serial Number Extraction
     invoice_serial = None
     warranty_serial = None
-    serial_match_inv = re.search(r"(?:Serial|SN|S/N)[:\s#-]+([A-Za-z0-9-]+)", invoice_text, re.IGNORECASE)
-    if serial_match_inv:
-        invoice_serial = serial_match_inv.group(1).strip()
+    serial_match = re.search(r"(?:Serial|SN|S/N|IMEI)[:\s#-]+([A-Za-z0-9-]+)", combined_text, re.IGNORECASE)
+    if serial_match:
+        invoice_serial = serial_match.group(1).strip()
 
-    serial_match_war = re.search(r"(?:Serial|SN|S/N)[:\s#-]+([A-Za-z0-9-]+)", warranty_text, re.IGNORECASE)
-    if serial_match_war:
-        warranty_serial = serial_match_war.group(1).strip()
-
-    # Extract Dates
-    purchase_dt = _extract_date_from_text(invoice_text)
+    # 3. Dynamic Date Extraction
+    purchase_dt = _extract_date_from_text(invoice_text) or _extract_date_from_text(combined_text)
     purchase_date_str = purchase_dt.strftime("%Y-%m-%d") if purchase_dt else None
 
-    incident_dt = _extract_date_from_text(incident_description)
+    incident_dt = _extract_date_from_text(incident_description) or _extract_date_from_text(combined_text)
     incident_date_str = incident_dt.strftime("%Y-%m-%d") if incident_dt else None
 
     # Check 1: Ownership / Invoice
@@ -246,16 +319,12 @@ def _fallback_heuristic_analysis(
     checks.append(VerificationCheck(label="Ownership verified", passed=has_invoice))
     if not has_invoice:
         score -= 30
-        issues.append(DetectedIssue(severity="HIGH", description="Proof of purchase or invoice document is missing."))
-        actions.append("Upload a valid invoice or purchase receipt.")
+        issues.append(DetectedIssue(severity="HIGH", description="Proof of purchase or receipt document is missing."))
+        actions.append("Upload a valid purchase receipt or sales invoice.")
 
     # Check 2: Purchase Date Identified
-    has_purchase_date = bool(purchase_date_str or (has_invoice and any(k in invoice_text.lower() for k in ["date", "202", "201", "/"])))
+    has_purchase_date = bool(purchase_date_str)
     checks.append(VerificationCheck(label="Purchase date identified", passed=has_purchase_date))
-    if not has_purchase_date and has_invoice:
-        score -= 10
-        issues.append(DetectedIssue(severity="MEDIUM", description="Could not clearly identify purchase date on invoice."))
-        actions.append("Ensure invoice clearly displays purchase date.")
 
     # Check 3: Cross-Document Model Consistency
     product_match_passed = True
@@ -270,74 +339,38 @@ def _fallback_heuristic_analysis(
             field="Product Model Discrepancy",
             source_a="Purchase Invoice",
             value_a=invoice_model,
-            source_b="Warranty Policy Document",
+            source_b="Warranty Policy",
             value_b=warranty_model,
             severity="HIGH",
-            explanation="The product model on the purchase invoice does not match the model registered on the warranty policy. Insurers will deny coverage due to identity conflict."
+            explanation="Product model on the purchase invoice conflicts with the model registered on the warranty policy."
         ))
-        actions.append(f"Verify warranty certificate matches invoice product model ({invoice_model}).")
-    elif invoice_serial and warranty_serial and invoice_serial.lower() != warranty_serial.lower():
-        product_match_passed = False
-        score -= 25
-        issues.append(DetectedIssue(
-            severity="HIGH",
-            description=f"Serial number mismatch: Invoice has '{invoice_serial}' but Warranty has '{warranty_serial}'."
-        ))
-        discrepancies.append(CrossDocumentDiscrepancy(
-            field="Serial Number Mismatch",
-            source_a="Purchase Invoice",
-            value_a=invoice_serial,
-            source_b="Warranty Certificate",
-            value_b=warranty_serial,
-            severity="HIGH",
-            explanation="Serial numbers differ between proof of purchase and warranty certificate."
-        ))
-        actions.append("Ensure serial numbers match across receipt and warranty.")
-    elif not has_invoice or not (warranty_text or photos_text):
-        product_match_passed = False
-        score -= 15
-        issues.append(DetectedIssue(severity="MEDIUM", description="Product model or serial could not be cross-verified across documents."))
-        actions.append("Upload warranty policy or clear photo of product serial number tag.")
+        actions.append(f"Upload warranty certificate matching invoice product model ({invoice_model}).")
 
     checks.append(VerificationCheck(label="Product identity matched", passed=product_match_passed))
 
-    # Check 4: Damage Evidence
+    # Check 4: Damage Proof
     has_damage = bool(incident_description.strip() or photos_text.strip() or photo_metadata_list)
     checks.append(VerificationCheck(label="Damage visible", passed=has_damage))
-    if not has_damage:
-        score -= 25
-        issues.append(DetectedIssue(severity="HIGH", description="Damage proof and incident statement are missing."))
-        actions.append("Provide detailed incident description and upload clear damage photos.")
 
-    # Check 5: Timeline & EXIF Cross-Check
+    # Check 5: Timeline Logic
     timeline_valid = True
-    if purchase_dt and incident_dt:
-        if purchase_dt > incident_dt:
-            timeline_valid = False
-            score -= 40
-            issues.append(DetectedIssue(
-                severity="HIGH",
-                description=f"Timeline contradiction: Purchase date ({purchase_date_str}) is recorded AFTER incident date ({incident_date_str})."
-            ))
-            discrepancies.append(CrossDocumentDiscrepancy(
-                field="Timeline Order Conflict",
-                source_a="Purchase Invoice Date",
-                value_a=purchase_date_str or "Unknown",
-                source_b="Stated Incident Date",
-                value_b=incident_date_str or "Unknown",
-                severity="HIGH",
-                explanation="Chronological impossibility: The purchase date post-dates the incident event."
-            ))
-            actions.append("Correct purchase or incident date before final submission.")
-
-    # Forensics Check & Penalty
-    if forensics and forensics.is_tampered:
-        score -= 25
+    if purchase_dt and incident_dt and purchase_dt > incident_dt:
+        timeline_valid = False
+        score -= 40
         issues.append(DetectedIssue(
             severity="HIGH",
-            description=f"Visual Forensics Flag: {forensics.editing_software_detected or 'Editing artifacts'} detected in visual evidence."
+            description=f"Timeline contradiction: Purchase date ({purchase_date_str}) is recorded AFTER incident date ({incident_date_str})."
         ))
-        actions.append("Upload unedited, original camera photograph without post-processing.")
+        discrepancies.append(CrossDocumentDiscrepancy(
+            field="Timeline Order Conflict",
+            source_a="Purchase Invoice Date",
+            value_a=purchase_date_str or "Unknown",
+            source_b="Stated Incident Date",
+            value_b=incident_date_str or "Unknown",
+            severity="HIGH",
+            explanation="Chronological impossibility: Invoice purchase date post-dates the claimed incident event."
+        ))
+        actions.append("Correct purchase or incident date before final submission.")
 
     checks.append(VerificationCheck(label="Timeline validated", passed=timeline_valid))
     checks.append(VerificationCheck(
@@ -347,13 +380,23 @@ def _fallback_heuristic_analysis(
 
     score = max(0, min(100, score))
 
+    # Damage Type Classifier
+    damage_type = None
+    lower_comb = combined_text.lower()
+    if any(k in lower_comb for k in ["liquid", "water", "coffee", "spill", "splash", "rain", "moisture"]):
+        damage_type = "Liquid Spillage / Moisture Exposure"
+    elif any(k in lower_comb for k in ["screen", "display", "glass", "crack", "shatter", "fracture", "broken"]):
+        damage_type = "Physical Screen / Display Impact Crack"
+    elif has_damage:
+        damage_type = "Physical Fall / Accidental Damage"
+
     extracted_entities = ExtractedEntities(
-        product_name=invoice_model or warranty_model or ("Identified Device" if has_invoice else None),
-        model_number=invoice_serial or warranty_serial or ("Model Identified" if has_invoice else None),
+        product_name=invoice_model or warranty_model or (photos_text[:35].strip() if photos_text.strip() else None),
+        model_number=invoice_serial or warranty_serial,
         serial_number=invoice_serial or warranty_serial,
         purchase_date=purchase_date_str,
         incident_date=incident_date_str,
-        damage_type="Physical / Accidental Damage" if has_damage else None
+        damage_type=damage_type
     )
 
     if not forensics:

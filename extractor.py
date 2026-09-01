@@ -9,7 +9,7 @@ import logging
 import asyncio
 from typing import Optional, List
 from PIL import Image, ExifTags
-from models import PhotoMetadata, ForensicAnalysis, VerificationCheck
+from models import PhotoMetadata, ForensicAnalysis, VerificationCheck, OCRBoundingBox
 
 logger = logging.getLogger("claimai.extractor")
 
@@ -67,19 +67,26 @@ def _sync_extract_text_from_pdf(file_bytes: bytes) -> str:
 
         extracted_text = []
         with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
-            for page_idx, page in enumerate(pdf.pages):
-                page_text = page.extract_text()
-                if page_text:
-                    extracted_text.append(f"--- Page {page_idx + 1} ---\n{page_text.strip()}")
-                
-                tables = page.extract_tables()
-                if tables:
-                    for table in tables:
-                        table_str = "\n".join(
-                            ["\t|\t".join([str(cell or "").strip() for cell in row]) for row in table]
-                        )
-                        if table_str.strip():
-                            extracted_text.append(f"[Table Data]\n{table_str}")
+            # Limit page scan to first 10 pages for performance
+            for page_idx, page in enumerate(pdf.pages[:10]):
+                try:
+                    page_text = page.extract_text()
+                    if page_text:
+                        extracted_text.append(f"--- Page {page_idx + 1} ---\n{page_text.strip()}")
+                except Exception:
+                    pass
+
+                try:
+                    tables = page.extract_tables()
+                    if tables:
+                        for table in tables[:5]:
+                            table_str = "\n".join(
+                                ["\t|\t".join([str(cell or "").strip() for cell in row if cell]) for row in table if row]
+                            )
+                            if table_str.strip():
+                                extracted_text.append(f"[Table Data]\n{table_str}")
+                except Exception:
+                    pass
 
         return "\n\n".join(extracted_text).strip()
     except Exception as e:
@@ -109,8 +116,63 @@ def _sync_extract_text_from_image(file_bytes: bytes) -> str:
         return ""
 
 
+def _sync_extract_ocr_boxes_from_image(file_bytes: bytes) -> List[OCRBoundingBox]:
+    """Extracts OCR text bounding boxes [x, y, w, h] normalized as percentages from image bytes using RapidOCR."""
+    if not file_bytes:
+        return []
+    try:
+        from rapidocr_onnxruntime import RapidOCR
+        import numpy as np
+
+        image = Image.open(io.BytesIO(file_bytes)).convert("RGB")
+        width, height = image.size
+        img_np = np.array(image)
+
+        ocr_engine = RapidOCR()
+        result, _ = ocr_engine(img_np)
+
+        if not result:
+            return []
+
+        boxes = []
+        for item in result:
+            if len(item) >= 2 and item[1]:
+                pts = item[0]  # [[x1, y1], [x2, y2], [x3, y3], [x4, y4]]
+                text = str(item[1]).strip()
+                confidence = float(item[2]) if len(item) >= 3 else 0.95
+
+                xs = [pt[0] for pt in pts]
+                ys = [pt[1] for pt in pts]
+
+                min_x = min(xs)
+                min_y = min(ys)
+                w = max(xs) - min_x
+                h = max(ys) - min_y
+
+                x_pct = round(max(0, min(100, (min_x / width) * 100)), 2)
+                y_pct = round(max(0, min(100, (min_y / height) * 100)), 2)
+                w_pct = round(max(1, min(100, (w / width) * 100)), 2)
+                h_pct = round(max(1, min(100, (h / height) * 100)), 2)
+
+                boxes.append(
+                    OCRBoundingBox(
+                        text=text,
+                        confidence=confidence,
+                        x=x_pct,
+                        y=y_pct,
+                        w=w_pct,
+                        h=h_pct,
+                    )
+                )
+
+        return boxes
+    except Exception as e:
+        logger.warning(f"Failed to extract OCR bounding boxes: {e}")
+        return []
+
+
 def extract_image_exif_metadata(file_bytes: bytes, filename: str) -> PhotoMetadata:
-    """Extracts EXIF metadata from image bytes (capture date, camera make/model, GPS)."""
+    """Extracts EXIF metadata & OCR bounding boxes from image bytes."""
     capture_date = None
     camera_make = None
     camera_model = None
@@ -119,6 +181,8 @@ def extract_image_exif_metadata(file_bytes: bytes, filename: str) -> PhotoMetada
 
     if not file_bytes:
         return PhotoMetadata(filename=filename, has_gps=False)
+
+    ocr_boxes = _sync_extract_ocr_boxes_from_image(file_bytes)
 
     try:
         image = Image.open(io.BytesIO(file_bytes))
@@ -161,7 +225,8 @@ def extract_image_exif_metadata(file_bytes: bytes, filename: str) -> PhotoMetada
         camera_make=camera_make,
         camera_model=camera_model,
         has_gps=has_gps,
-        gps_coordinates=gps_coordinates
+        gps_coordinates=gps_coordinates,
+        ocr_boxes=ocr_boxes
     )
 
 
@@ -283,10 +348,23 @@ def extract_text_from_txt(file_bytes: bytes) -> str:
 
 
 async def extract_text_from_pdf(file_bytes: bytes) -> str:
-    """Asynchronously extract text from PDF document bytes."""
+    """Asynchronously extract text from PDF document bytes with 5s timeout & fallback."""
     if not file_bytes:
         return ""
-    return await asyncio.to_thread(_sync_extract_text_from_pdf, file_bytes)
+    try:
+        return await asyncio.wait_for(
+            asyncio.to_thread(_sync_extract_text_from_pdf, file_bytes),
+            timeout=5.0
+        )
+    except Exception as e:
+        logger.warning(f"PDF extraction timed out or failed ({e}), using raw text string fallback.")
+        try:
+            import re
+            raw = file_bytes.decode("latin-1", errors="ignore")
+            readable = re.findall(r'[A-Za-z0-9\s#\-\:\.\,\$\/]{4,}', raw)
+            return "\n".join(readable[:50])
+        except Exception:
+            return ""
 
 
 async def extract_text_from_image(file_bytes: bytes) -> str:

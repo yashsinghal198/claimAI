@@ -1,15 +1,17 @@
 "use client";
 
 import React from "react";
-import { CheckCircle2, XCircle, CheckSquare, AlertCircle } from "lucide-react";
+import { CheckCircle2, XCircle, CheckSquare, PlusCircle } from "lucide-react";
 import { VerificationCheck } from "@/types";
 
 interface VerificationChecklistProps {
   checks: VerificationCheck[];
+  onToggleCheck?: (checkLabel: string) => void;
 }
 
 export const VerificationChecklist: React.FC<VerificationChecklistProps> = ({
   checks,
+  onToggleCheck,
 }) => {
   const passedCount = checks.filter((c) => c.passed).length;
 
@@ -32,10 +34,11 @@ export const VerificationChecklist: React.FC<VerificationChecklistProps> = ({
           return (
             <div
               key={`${check.label}-${index}`}
+              onClick={() => !check.passed && onToggleCheck && onToggleCheck(check.label)}
               className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
                 check.passed
                   ? "bg-emerald-950/20 border-emerald-500/30 text-slate-200"
-                  : "bg-slate-950/50 border-slate-800/80 text-slate-400"
+                  : "bg-slate-950/70 border-rose-500/40 text-slate-300 hover:border-emerald-500/60 hover:bg-emerald-950/30 cursor-pointer group"
               }`}
             >
               <div className="flex items-center gap-2.5">
@@ -44,21 +47,22 @@ export const VerificationChecklist: React.FC<VerificationChecklistProps> = ({
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   </div>
                 ) : (
-                  <div className="w-6 h-6 rounded-full bg-rose-500/20 flex items-center justify-center flex-shrink-0">
-                    <XCircle className="w-4 h-4 text-rose-400" />
+                  <div className="w-6 h-6 rounded-full bg-rose-500/20 group-hover:bg-emerald-500/20 flex items-center justify-center flex-shrink-0 transition-colors">
+                    <XCircle className="w-4 h-4 text-rose-400 group-hover:hidden" />
+                    <PlusCircle className="w-4 h-4 text-emerald-400 hidden group-hover:block" />
                   </div>
                 )}
                 <span className="text-xs font-medium">{check.label}</span>
               </div>
 
               <span
-                className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
+                className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded transition-colors ${
                   check.passed
                     ? "bg-emerald-500/10 text-emerald-400"
-                    : "bg-rose-500/10 text-rose-400"
+                    : "bg-rose-500/10 text-rose-400 group-hover:bg-emerald-500/20 group-hover:text-emerald-300"
                 }`}
               >
-                {check.passed ? "Verified" : "Missing"}
+                {check.passed ? "Verified" : "Click to Resolve (+19 pts)"}
               </span>
             </div>
           );

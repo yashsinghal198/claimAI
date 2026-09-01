@@ -36,7 +36,7 @@ logger = logging.getLogger("claimai.main")
 app = FastAPI(
     title="ClaimAI — Pre-Claim Evidence Intelligence API",
     description="API gateway for intelligent pre-submission insurance and warranty claim evidence validation.",
-    version="3.6.0"
+    version="3.7.0"
 )
 
 # Configure CORS Middleware
@@ -48,7 +48,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-GREETINGS = {"hi", "hello", "hey", "hey there", "hola", "sup", "good morning", "good evening", "hi there", "who are you", "help"}
+GREETINGS = {"hi", "hio", "hello", "hey", "hey there", "hola", "sup", "good morning", "good evening", "hi there"}
+COMPLIMENTS = {"you are good", "you're good", "good job", "nice", "thanks", "thank you", "awesome", "great", "cool", "perfect", "amazing"}
 
 
 @app.get("/", tags=["Health"])
@@ -57,7 +58,7 @@ async def root():
     return {
         "service": "ClaimAI Pre-Claim Evidence Intelligence",
         "status": "online",
-        "version": "3.6.0",
+        "version": "3.7.0",
         "features": [
             "OCR & PDF Parsing",
             "EXIF Hardware Metadata",
@@ -111,13 +112,23 @@ async def interview_claimant(req: InterviewRequest):
     """
     Human-like Conversational AI interviewer that greets the user naturally,
     reviews the incident statement, asks clarifying follow-up questions,
-    and refines the claim narrative in real-time.
+    and refines the claim narrative in real-time without mechanical repetition.
     """
     current_statement = req.current_statement.strip()
-    last_response = (req.last_user_response or "").strip().lower().strip("!.,?")
+    raw_user_input = (req.last_user_response or "").strip()
+    last_response = raw_user_input.lower().strip("!.,?")
     history = req.messages
 
-    # 1. Handle Greetings & Small Talk naturally without corrupting the statement
+    # 1. Handle Compliments & Thanks
+    if last_response in COMPLIMENTS or "you are good" in last_response or "thank you" in last_response:
+        return InterviewResponse(
+            assistant_reply="Thank you so much! 😊 I'm happy to help. Let me know if you want to add any details or test your claim evidence!",
+            enhanced_statement=current_statement,
+            clarifying_chips=["I dropped my device", "How does ClaimAI work?", "What documents do I need?"],
+            is_statement_complete=False
+        )
+
+    # 2. Handle Greetings & Small Talk naturally without corrupting the statement
     if last_response in GREETINGS or not last_response:
         reply = (
             "Hey there! 👋 I'm your ClaimAI intake specialist. I'm here to help you build a bulletproof claim statement and spot any tricky document mismatches before you submit.\n\n"
@@ -140,7 +151,24 @@ async def interview_claimant(req: InterviewRequest):
             is_statement_complete=False
         )
 
-    # 2. Check if user is asking how ClaimAI works or what to do
+    # 3. Handle "How are you", "Who are you", small talk
+    if "how are you" in last_response or "how r u" in last_response or "how are u" in last_response:
+        return InterviewResponse(
+            assistant_reply="I'm doing great, thanks for asking! 😊 I'm here and ready to help you analyze your claim evidence or answer any questions about your policy. How can I help you today?",
+            enhanced_statement=current_statement,
+            clarifying_chips=["I dropped my device", "How does ClaimAI work?", "What documents do I need?"],
+            is_statement_complete=False
+        )
+
+    if "who are you" in last_response or "what are you" in last_response:
+        return InterviewResponse(
+            assistant_reply="I'm the ClaimAI Intake Assistant! 🤖 I use OCR and AI graph reasoning to cross-check purchase receipts against warranties, detect photo tampering, and make sure your claim gets approved without delays.",
+            enhanced_statement=current_statement,
+            clarifying_chips=["Tell me more about ClaimAI", "Analyze my claim", "How to upload photos"],
+            is_statement_complete=False
+        )
+
+    # 4. Check if user is asking how ClaimAI works
     if any(q in last_response for q in ["how it works", "what do you do", "what is claimai", "what to do"]):
         return InterviewResponse(
             assistant_reply=(
@@ -153,23 +181,33 @@ async def interview_claimant(req: InterviewRequest):
             is_statement_complete=False
         )
 
-    # 3. Enhance statement with genuine incident facts
+    # 5. Handle liquid exposure replies specifically (No liquid / dry impact)
+    is_liquid_reply = any(k in last_response for k in ["no liquid", "dry impact", "dry surface", "no water", "without liquid"])
+    
+    # 6. Enhance statement with genuine incident facts
     enhanced = current_statement
-    if last_response and last_response not in GREETINGS:
+    is_meaningful_fact = len(raw_user_input) > 3 and not (last_response in GREETINGS or last_response in COMPLIMENTS)
+    if is_meaningful_fact:
         if current_statement:
-            if last_response not in current_statement.lower():
-                enhanced = f"{current_statement}. Context: {req.last_user_response.strip()}".strip(". ") + "."
+            if raw_user_input.lower() not in current_statement.lower():
+                enhanced = f"{current_statement}. Context: {raw_user_input}".strip(". ") + "."
         else:
-            enhanced = req.last_user_response.strip()
+            enhanced = raw_user_input
 
     llm = _get_llm()
     if not llm:
-        # Smart heuristic human-like conversational engine
         lower_enhanced = enhanced.lower()
 
-        if not any(k in lower_enhanced for k in ["desk", "floor", "office", "home", "car", "room", "table", "ground", "outdoors"]):
+        if is_liquid_reply or "liquid" in lower_enhanced or "dry" in lower_enhanced:
             return InterviewResponse(
-                assistant_reply=f"Got it! I've updated your statement. 📍 Quick question: Where did this happen? (For example: indoors at an office desk, or outdoors on concrete?)",
+                assistant_reply="Understood! Dry impact with no liquid exposure. 🛡️ Was the device inside a protective case or cover when it fell?",
+                enhanced_statement=enhanced,
+                clarifying_chips=["Protective case was installed", "No case, bare device", "Screen protector was on"],
+                is_statement_complete=False
+            )
+        elif not any(k in lower_enhanced for k in ["desk", "floor", "office", "home", "car", "room", "table", "ground", "outdoors"]):
+            return InterviewResponse(
+                assistant_reply="Got it! I've updated your statement. 📍 Quick question: Where did this happen? (For example: indoors at an office desk, or outdoors on concrete?)",
                 enhanced_statement=enhanced,
                 clarifying_chips=["Indoors at my office desk", "At home on living room floor", "Outdoors on sidewalk"],
                 is_statement_complete=False
@@ -202,11 +240,13 @@ async def interview_claimant(req: InterviewRequest):
         prompt = ChatPromptTemplate.from_messages([
             ("system", """You are a warm, empathetic, and professional Insurance Claims Specialist AI for ClaimAI.
 Respond naturally like a friendly human expert guiding a claimant through their intake.
-Never say 'Noted...' mechanically. Acknowledge what the user said with empathy.
+Never repeat 'Understood! I've updated your statement...' mechanically.
+Acknowledge what the user said with human empathy.
 Ask 1 focused follow-up question to clarify missing risk details (location, liquid, case, timeline).
+Do NOT re-ask questions the user already answered (e.g. if user said 'no liquid', move to asking about protective case).
 Always provide 3 helpful, natural quick-reply answer chips.
 Refine the enhanced_statement to be clear, chronological, and professional."""),
-            ("user", f"Current Statement: {current_statement}\nLast User Input: {req.last_user_response}\nChat History: {[m.model_dump() for m in history]}")
+            ("user", f"Current Statement: {current_statement}\nLast User Input: {raw_user_input}\nChat History: {[m.model_dump() for m in history]}")
         ])
         structured_llm = llm.with_structured_output(InterviewResponse)
         chain = prompt | structured_llm

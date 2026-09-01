@@ -17,6 +17,15 @@ export interface ExtractedEntities {
   damage_type?: string | null;
 }
 
+export interface OCRBoundingBox {
+  text: string;
+  confidence?: number;
+  x: number; // percentage (0-100)
+  y: number; // percentage (0-100)
+  w: number; // percentage (0-100)
+  h: number; // percentage (0-100)
+}
+
 export interface PhotoMetadata {
   filename: string;
   capture_date?: string | null;
@@ -24,6 +33,7 @@ export interface PhotoMetadata {
   camera_model?: string | null;
   has_gps: boolean;
   gps_coordinates?: string | null;
+  ocr_boxes?: OCRBoundingBox[];
 }
 
 export interface CrossDocumentDiscrepancy {

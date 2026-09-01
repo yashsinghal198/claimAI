@@ -101,9 +101,23 @@ export default function ClaimAIDashboard() {
   // Instant Auto-Resolve Discrepancy Action
   const handleAutoResolveDiscrepancy = (discrepancy: CrossDocumentDiscrepancy) => {
     if (!result) return;
-    const newScore = Math.min(100, result.readiness_score + 25);
+    const newScore = Math.min(100, result.readiness_score + 19);
     const updatedChecks = result.verification_checks.map((chk) =>
       chk.label === "Product identity matched" ? { ...chk, passed: true } : chk
+    );
+    setResult({
+      ...result,
+      readiness_score: newScore,
+      verification_checks: updatedChecks,
+    });
+  };
+
+  // Toggle checklist item and animate score
+  const handleToggleCheck = (checkLabel: string) => {
+    if (!result) return;
+    const newScore = Math.min(100, result.readiness_score + 19);
+    const updatedChecks = result.verification_checks.map((chk) =>
+      chk.label === checkLabel ? { ...chk, passed: true } : chk
     );
     setResult({
       ...result,
@@ -144,6 +158,24 @@ export default function ClaimAIDashboard() {
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  const handleInvoiceFilesChange = (files: File[]) => {
+    setInvoiceFiles(files);
+    setActivePresetId(null);
+    setResult(null);
+  };
+
+  const handleWarrantyFilesChange = (files: File[]) => {
+    setWarrantyFiles(files);
+    setActivePresetId(null);
+    setResult(null);
+  };
+
+  const handleDamagePhotosChange = (files: File[]) => {
+    setDamagePhotoFiles(files);
+    setActivePresetId(null);
+    setResult(null);
   };
 
   return (
@@ -217,7 +249,10 @@ export default function ClaimAIDashboard() {
                   <textarea
                     rows={4}
                     value={incidentDescription}
-                    onChange={(e) => setIncidentDescription(e.target.value)}
+                    onChange={(e) => {
+                      setIncidentDescription(e.target.value);
+                      setActivePresetId(null);
+                    }}
                     placeholder="Describe how damage occurred, incident date (e.g. 2024-07-18), location, and any relevant details..."
                     className="w-full text-xs p-3 rounded-xl bg-slate-950/70 border border-slate-800 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500/80 focus:ring-1 focus:ring-cyan-500/50 transition-all leading-relaxed"
                   />
@@ -230,7 +265,7 @@ export default function ClaimAIDashboard() {
                   accept=".pdf,.png,.jpg,.jpeg,.webp,.txt"
                   icon="pdf"
                   files={invoiceFiles}
-                  onFilesChange={setInvoiceFiles}
+                  onFilesChange={handleInvoiceFilesChange}
                   required
                 />
 
@@ -241,7 +276,7 @@ export default function ClaimAIDashboard() {
                   accept=".pdf,.png,.jpg,.jpeg,.webp,.txt"
                   icon="pdf"
                   files={warrantyFiles}
-                  onFilesChange={setWarrantyFiles}
+                  onFilesChange={handleWarrantyFilesChange}
                 />
 
                 {/* Damage & Serial Tag Photos + Smart Camera Button */}
@@ -252,7 +287,7 @@ export default function ClaimAIDashboard() {
                   icon="image"
                   multiple
                   files={damagePhotoFiles}
-                  onFilesChange={setDamagePhotoFiles}
+                  onFilesChange={handleDamagePhotosChange}
                   onOpenSmartCamera={() => setShowCameraModal(true)}
                   required
                 />
@@ -358,7 +393,10 @@ export default function ClaimAIDashboard() {
                     <PhotoMetadataCard metadataList={result.photo_metadata} />
 
                     {/* Verification Checklist */}
-                    <VerificationChecklist checks={result.verification_checks} />
+                    <VerificationChecklist
+                      checks={result.verification_checks}
+                      onToggleCheck={handleToggleCheck}
+                    />
 
                     {/* Detected Issues */}
                     <IssuesFeed issues={result.issues_detected} />

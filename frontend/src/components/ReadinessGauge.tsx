@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { ShieldCheck, AlertTriangle, AlertOctagon, TrendingUp } from "lucide-react";
+import React, { useEffect, useState, useRef } from "react";
+import { ShieldCheck, AlertTriangle, AlertOctagon, TrendingUp, Sparkles, PlusCircle } from "lucide-react";
 import confetti from "canvas-confetti";
 
 interface ReadinessGaugeProps {
@@ -10,11 +10,30 @@ interface ReadinessGaugeProps {
 
 export const ReadinessGauge: React.FC<ReadinessGaugeProps> = ({ score }) => {
   const [animatedScore, setAnimatedScore] = useState(0);
+  const [incrementBadge, setIncrementBadge] = useState<number | null>(null);
+  const prevScoreRef = useRef(score);
+
+  useEffect(() => {
+    const prev = prevScoreRef.current;
+    if (score > prev) {
+      const diff = score - prev;
+      setIncrementBadge(diff);
+
+      // Hide badge after 3.5s
+      const timer = setTimeout(() => {
+        setIncrementBadge(null);
+      }, 3500);
+
+      prevScoreRef.current = score;
+      return () => clearTimeout(timer);
+    }
+    prevScoreRef.current = score;
+  }, [score]);
 
   useEffect(() => {
     // Smooth score animation
-    let start = 0;
-    const duration = 1200;
+    let startScore = animatedScore;
+    const duration = 800;
     const startTime = performance.now();
 
     const animate = (currentTime: number) => {
@@ -22,17 +41,17 @@ export const ReadinessGauge: React.FC<ReadinessGaugeProps> = ({ score }) => {
       const progress = Math.min(elapsed / duration, 1);
       // Ease out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
-      const currentScore = Math.round(eased * score);
+      const currentScore = Math.round(startScore + (score - startScore) * eased);
       setAnimatedScore(currentScore);
 
       if (progress < 1) {
         requestAnimationFrame(animate);
-      } else if (score >= 80) {
-        // Trigger subtle celebration confetti on high readiness
+      } else if (score >= 80 && animatedScore < 80) {
+        // Trigger subtle celebration confetti on high readiness transition
         confetti({
-          particleCount: 50,
-          spread: 60,
-          origin: { y: 0.6 },
+          particleCount: 60,
+          spread: 70,
+          origin: { y: 0.55 },
           colors: ["#10b981", "#06b6d4", "#6366f1"],
         });
       }
@@ -65,6 +84,14 @@ export const ReadinessGauge: React.FC<ReadinessGaugeProps> = ({ score }) => {
     <div
       className={`relative bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 backdrop-blur-xl shadow-2xl flex flex-col items-center justify-center text-center transition-all ${glowColor}`}
     >
+      {/* Floating Animated Increment Badge */}
+      {incrementBadge && (
+        <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400 text-emerald-300 text-xs font-bold shadow-lg shadow-emerald-500/30 animate-bounce">
+          <PlusCircle className="w-4 h-4 text-emerald-400" />
+          <span>+{incrementBadge} PTS RECOVERED</span>
+        </div>
+      )}
+
       <div className="flex items-center gap-2 mb-4">
         <TrendingUp className="w-4 h-4 text-cyan-400" />
         <span className="text-xs uppercase tracking-wider font-bold text-slate-300">
@@ -95,7 +122,7 @@ export const ReadinessGauge: React.FC<ReadinessGaugeProps> = ({ score }) => {
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
             fill="transparent"
-            className="transition-all duration-300 ease-out"
+            className="transition-all duration-500 ease-out"
             style={{
               filter: `drop-shadow(0 0 6px ${strokeColor}80)`,
             }}
@@ -117,7 +144,7 @@ export const ReadinessGauge: React.FC<ReadinessGaugeProps> = ({ score }) => {
       {/* Status Tier Badge */}
       <div className="mt-4">
         {isHigh ? (
-          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold">
+          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold animate-pulse">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
             <span>Submission Ready</span>
           </div>

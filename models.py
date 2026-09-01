@@ -36,6 +36,16 @@ class ExtractedEntities(BaseModel):
     damage_type: Optional[str] = Field(None, description="Summary of physical/liquid/electronic damage")
 
 
+class OCRBoundingBox(BaseModel):
+    """Bounding box coordinates for detected OCR text region."""
+    text: str = Field(..., description="Detected text snippet (e.g. SN-DELL-INSP-90812)")
+    confidence: float = Field(default=0.95, description="OCR detection confidence score")
+    x: float = Field(..., description="X top-left origin percentage (0-100)")
+    y: float = Field(..., description="Y top-left origin percentage (0-100)")
+    w: float = Field(..., description="Width percentage (0-100)")
+    h: float = Field(..., description="Height percentage (0-100)")
+
+
 class PhotoMetadata(BaseModel):
     """EXIF metadata parsed from uploaded image evidence."""
     filename: str = Field(..., description="Uploaded image filename")
@@ -44,6 +54,7 @@ class PhotoMetadata(BaseModel):
     camera_model: Optional[str] = Field(None, description="Camera model (e.g. iPhone 15 Pro)")
     has_gps: bool = Field(default=False, description="Whether GPS location metadata is embedded")
     gps_coordinates: Optional[str] = Field(None, description="Formatted GPS latitude & longitude if present")
+    ocr_boxes: List[OCRBoundingBox] = Field(default_factory=list, description="Bounding boxes of OCR detected serial tags and text")
 
 
 class CrossDocumentDiscrepancy(BaseModel):
