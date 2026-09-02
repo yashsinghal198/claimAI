@@ -23,7 +23,8 @@ from models import (
     ForensicAnalysis,
 )
 
-load_dotenv()
+env_path = os.path.join(os.path.dirname(__file__), '../.env')
+load_dotenv(env_path)
 logger = logging.getLogger("claimai.reasoning")
 
 SYSTEM_PROMPT = """You are the Lead Claim Evidence Analyst for ClaimAI (Pre-Claim Evidence Intelligence System).
