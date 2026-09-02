@@ -98,32 +98,28 @@ export default function ClaimAIDashboard() {
     setErrorMessage(null);
   };
 
-  // Instant Auto-Resolve Discrepancy Action
+  // Scroll to Evidence Studio instead of Auto-Resolve
   const handleAutoResolveDiscrepancy = (discrepancy: CrossDocumentDiscrepancy) => {
-    if (!result) return;
-    const newScore = Math.min(100, result.readiness_score + 19);
-    const updatedChecks = result.verification_checks.map((chk) =>
-      chk.label === "Product identity matched" ? { ...chk, passed: true } : chk
-    );
-    setResult({
-      ...result,
-      readiness_score: newScore,
-      verification_checks: updatedChecks,
-    });
+    const studioElement = document.getElementById("evidence-studio");
+    if (studioElement) {
+      studioElement.scrollIntoView({ behavior: "smooth", block: "start" });
+      studioElement.classList.add("ring-2", "ring-cyan-500", "ring-offset-2", "ring-offset-slate-950", "transition-all", "duration-500");
+      setTimeout(() => {
+        studioElement.classList.remove("ring-2", "ring-cyan-500", "ring-offset-2", "ring-offset-slate-950");
+      }, 1500);
+    }
   };
 
-  // Toggle checklist item and animate score
+  // Scroll to Evidence Studio when clicking to resolve
   const handleToggleCheck = (checkLabel: string) => {
-    if (!result) return;
-    const newScore = Math.min(100, result.readiness_score + 19);
-    const updatedChecks = result.verification_checks.map((chk) =>
-      chk.label === checkLabel ? { ...chk, passed: true } : chk
-    );
-    setResult({
-      ...result,
-      readiness_score: newScore,
-      verification_checks: updatedChecks,
-    });
+    const studioElement = document.getElementById("evidence-studio");
+    if (studioElement) {
+      studioElement.scrollIntoView({ behavior: "smooth", block: "start" });
+      studioElement.classList.add("ring-2", "ring-cyan-500", "ring-offset-2", "ring-offset-slate-950", "transition-all", "duration-500");
+      setTimeout(() => {
+        studioElement.classList.remove("ring-2", "ring-cyan-500", "ring-offset-2", "ring-offset-slate-950");
+      }, 1500);
+    }
   };
 
   // Smart Camera snapshot capture
@@ -219,7 +215,7 @@ export default function ClaimAIDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* LEFT COLUMN: Evidence Ingestion Studio (5 cols) */}
           <div className="lg:col-span-5 space-y-5">
-            <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 lg:p-6 backdrop-blur-xl shadow-xl">
+            <div id="evidence-studio" className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 lg:p-6 backdrop-blur-xl shadow-xl">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <FileSearch className="w-4 h-4 text-cyan-400" />
