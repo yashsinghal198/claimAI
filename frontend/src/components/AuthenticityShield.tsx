@@ -22,10 +22,10 @@ export const AuthenticityShield: React.FC<AuthenticityShieldProps> = ({
     <div
       className={`rounded-2xl border p-4 backdrop-blur-xl transition-all ${
         isAuthentic
-          ? "bg-emerald-950/20 border-emerald-500/40 shadow-lg shadow-emerald-950/20"
+          ? "bg-emerald-50 border-emerald-500/40 shadow-lg shadow-emerald-500/20"
           : isSuspicious
-          ? "bg-rose-950/20 border-rose-500/40 shadow-lg shadow-rose-950/20"
-          : "bg-amber-950/20 border-amber-500/40"
+          ? "bg-rose-50 border-rose-500/40 shadow-lg shadow-rose-500/20"
+          : "bg-amber-50 border-amber-500/40"
       }`}
     >
       <div className="flex items-center justify-between">
@@ -46,14 +46,14 @@ export const AuthenticityShield: React.FC<AuthenticityShieldProps> = ({
 
           <div>
             <div className="flex items-center gap-2">
-              <h4 className="text-xs font-bold text-slate-100 flex items-center gap-1.5">
+              <h4 className="text-xs font-bold text-black flex items-center gap-1.5">
                 Authenticity & Integrity Shield
-                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
+                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-black/5 text-black/70">
                   Forensic V3
                 </span>
               </h4>
             </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">
+            <p className="text-[11px] text-black/50 mt-0.5">
               {isAuthentic
                 ? "Zero pixel tampering or generative AI artifacts detected."
                 : forensics.editing_software_detected
@@ -73,7 +73,7 @@ export const AuthenticityShield: React.FC<AuthenticityShieldProps> = ({
             >
               {forensics.authenticity_score}%
             </span>
-            <span className="block text-[9px] uppercase font-semibold text-slate-400">
+            <span className="block text-[9px] uppercase font-semibold text-black/50">
               Integrity
             </span>
           </div>
@@ -81,7 +81,7 @@ export const AuthenticityShield: React.FC<AuthenticityShieldProps> = ({
           <button
             type="button"
             onClick={() => setExpanded(!expanded)}
-            className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition-colors"
+            className="p-1.5 rounded-lg bg-white border border-black/10 text-black/50 hover:text-white transition-colors"
             title="Toggle Forensic Check Details"
           >
             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -91,10 +91,10 @@ export const AuthenticityShield: React.FC<AuthenticityShieldProps> = ({
 
       {/* Expanded Forensics Details */}
       {expanded && (
-        <div className="mt-3.5 pt-3 border-t border-slate-800/80 space-y-2 text-xs animate-in fade-in duration-200">
+        <div className="mt-3.5 pt-3 border-t border-black/10 space-y-2 text-xs animate-in fade-in duration-200">
           <div className="grid grid-cols-2 gap-2 text-[11px]">
-            <div className="p-2 rounded-lg bg-slate-950/60 border border-slate-800">
-              <span className="text-slate-400 block text-[10px]">AI Generative Risk:</span>
+            <div className="p-2 rounded-lg bg-white border border-black/10">
+              <span className="text-black/50 block text-[10px]">AI Generative Risk:</span>
               <span
                 className={`font-semibold uppercase ${
                   forensics.ai_generated_risk === "LOW"
@@ -108,9 +108,9 @@ export const AuthenticityShield: React.FC<AuthenticityShieldProps> = ({
               </span>
             </div>
 
-            <div className="p-2 rounded-lg bg-slate-950/60 border border-slate-800">
-              <span className="text-slate-400 block text-[10px]">Software Signatures:</span>
-              <span className="font-semibold text-slate-200 truncate block">
+            <div className="p-2 rounded-lg bg-white border border-black/10">
+              <span className="text-black/50 block text-[10px]">Software Signatures:</span>
+              <span className="font-semibold text-black/80 truncate block">
                 {forensics.editing_software_detected || "None (Original Camera Sensor)"}
               </span>
             </div>
@@ -121,9 +121,9 @@ export const AuthenticityShield: React.FC<AuthenticityShieldProps> = ({
             {forensics.forensic_checks.map((check, idx) => (
               <div
                 key={`${check.label}-${idx}`}
-                className="flex items-center justify-between p-1.5 rounded bg-slate-950/40 text-[11px]"
+                className="flex items-center justify-between p-1.5 rounded bg-white text-[11px]"
               >
-                <span className="text-slate-300">{check.label}</span>
+                <span className="text-black/70">{check.label}</span>
                 <span
                   className={`font-bold ${
                     check.passed ? "text-emerald-400" : "text-rose-400"

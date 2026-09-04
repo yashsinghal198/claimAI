@@ -22,22 +22,22 @@ export const VisualScanBanner: React.FC = () => {
   }, []);
 
   return (
-    <div className="bg-gradient-to-r from-indigo-950/60 via-slate-900/90 to-cyan-950/60 border border-cyan-500/40 rounded-2xl p-6 backdrop-blur-xl shadow-2xl relative overflow-hidden animate-pulse">
+    <div className="claim-panel relative overflow-hidden rounded-2xl border-black/20 p-6">
       {/* Laser scan line effect */}
-      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-bounce" />
+      <div className="claim-scan-line absolute left-0 right-0 top-0 h-0.5 bg-black shadow-[0_0_12px_rgba(0,0,0,0.55)]" />
 
       <div className="flex items-center gap-3.5 mb-4">
-        <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
+        <div className="w-10 h-10 rounded-xl bg-purple-900/10 border border-purple-900/20 flex items-center justify-center text-purple-900">
           <Loader2 className="w-5 h-5 animate-spin" />
         </div>
         <div>
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+          <h3 className="text-sm font-bold text-black flex items-center gap-2">
             AI Pre-Claim Evidence Engine Scanning
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-              GPT-4o Multimodal Graph
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-900/10 text-purple-800 border border-purple-900/20">
+              LIVE GRAPH PASS
             </span>
           </h3>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-black/50">
             Validating cross-document consistency, timeline logic, and evidence completeness...
           </p>
         </div>
@@ -56,16 +56,16 @@ export const VisualScanBanner: React.FC = () => {
                 isDone
                   ? "text-emerald-400 font-medium"
                   : isCurrent
-                  ? "text-cyan-300 font-bold"
-                  : "text-slate-500 opacity-60"
+                  ? "text-purple-800 font-bold"
+                  : "text-black/40 opacity-60"
               }`}
             >
               {isDone ? (
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
               ) : isCurrent ? (
-                <Loader2 className="w-4 h-4 text-cyan-400 animate-spin flex-shrink-0" />
+                <Loader2 className="w-4 h-4 text-purple-900 animate-spin flex-shrink-0" />
               ) : (
-                <div className="w-4 h-4 rounded-full border border-slate-700 flex items-center justify-center flex-shrink-0" />
+                <div className="w-4 h-4 rounded-full border border-black/20 flex items-center justify-center flex-shrink-0" />
               )}
               <span>{step}</span>
             </div>

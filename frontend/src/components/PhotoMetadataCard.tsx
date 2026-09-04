@@ -55,23 +55,23 @@ export const PhotoMetadataCard: React.FC<PhotoMetadataCardProps> = ({
       : defaultBoxes;
 
   return (
-    <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-md space-y-4">
+    <div className="claim-panel rounded-2xl p-5 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Camera className="w-4 h-4 text-cyan-400" />
-          <h3 className="text-sm font-semibold text-slate-200">
+          <Camera className="w-4 h-4 text-purple-900" />
+          <h3 className="text-sm font-semibold text-black/80">
             Photo EXIF & Visual OCR Bounding Box Inspection
           </h3>
         </div>
-        <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
-          <Scan className="w-3 h-3 text-cyan-400 animate-pulse" />
+        <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-purple-900/10 text-purple-800 border border-purple-900/20 flex items-center gap-1">
+          <Scan className="w-3 h-3 text-purple-900 animate-pulse" />
           OCR Extraction Active
         </span>
       </div>
 
       {/* Main OCR Visual Preview Frame with Glowing Bounding Boxes */}
-      <div className="relative w-full h-56 rounded-xl bg-slate-950 border border-cyan-500/40 overflow-hidden flex items-center justify-center shadow-xl shadow-cyan-950/30 group">
+      <div className="relative w-full h-56 rounded-xl bg-black/[0.035] border border-black/20 overflow-hidden flex items-center justify-center shadow-[4px_4px_0_rgba(0,0,0,0.8)] group">
         {/* Subtle Background Grid Pattern */}
         <div
           className="absolute inset-0 opacity-20 pointer-events-none"
@@ -83,13 +83,13 @@ export const PhotoMetadataCard: React.FC<PhotoMetadataCardProps> = ({
         />
 
         {/* Mock/Actual Photo Background Representation */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 via-slate-900 to-cyan-950/40 flex items-center justify-center">
+        <div className="absolute inset-0 bg-gradient-to-tr from-black/5 via-black/10 to-purple-900/10 flex items-center justify-center">
           <div className="text-center space-y-1">
             <ImageIcon className="w-10 h-10 text-cyan-500/40 mx-auto" />
-            <p className="text-xs font-bold text-slate-400 font-mono">
+            <p className="text-xs font-bold text-black/50 font-mono">
               {activePhoto.filename}
             </p>
-            <p className="text-[10px] text-slate-500">
+            <p className="text-[10px] text-black/40">
               Serial Tag & Fracture OCR Extraction Frame
             </p>
           </div>
@@ -99,7 +99,7 @@ export const PhotoMetadataCard: React.FC<PhotoMetadataCardProps> = ({
         {boxesToDisplay.map((box, bIdx) => (
           <div
             key={bIdx}
-            className="absolute border-2 border-cyan-400 bg-cyan-500/10 rounded-lg shadow-[0_0_15px_rgba(6,182,212,0.5)] transition-all duration-500 animate-pulse group-hover:border-emerald-400 group-hover:bg-emerald-500/10 group-hover:shadow-[0_0_20px_rgba(16,185,129,0.6)]"
+            className="absolute border-2 border-purple-900/20 bg-purple-900/10 rounded-lg shadow-[0_0_15px_rgba(6,182,212,0.5)] transition-all duration-500 animate-pulse group-hover:border-emerald-400 group-hover:bg-emerald-500/10 group-hover:shadow-[0_0_20px_rgba(16,185,129,0.6)]"
             style={{
               left: `${box.x}%`,
               top: `${box.y}%`,
@@ -108,8 +108,8 @@ export const PhotoMetadataCard: React.FC<PhotoMetadataCardProps> = ({
             }}
           >
             {/* Hover OCR Label Tag */}
-            <div className="absolute -top-7 left-0 flex items-center gap-1 px-2 py-0.5 rounded bg-slate-950/90 border border-cyan-400 text-[10px] font-mono text-cyan-300 font-bold whitespace-nowrap shadow-md">
-              <Sparkles className="w-3 h-3 text-cyan-400" />
+            <div className="absolute -top-7 left-0 flex items-center gap-1 px-2 py-0.5 rounded bg-white border border-purple-900/20 text-[10px] font-mono text-purple-800 font-bold whitespace-nowrap shadow-md">
+              <Sparkles className="w-3 h-3 text-purple-900" />
               <span>{box.text}</span>
               <span className="text-[9px] text-emerald-400 font-normal">
                 ({Math.round((box.confidence || 0.95) * 100)}%)
@@ -135,13 +135,13 @@ export const PhotoMetadataCard: React.FC<PhotoMetadataCardProps> = ({
               onClick={() => setActivePhotoIdx(idx)}
               className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
                 isSelected
-                  ? "bg-slate-950/90 border-cyan-400 ring-1 ring-cyan-500/40"
-                  : "bg-slate-950/50 border-slate-800 hover:border-slate-700"
+                  ? "bg-white border-purple-900/20 ring-1 ring-cyan-500/40"
+                  : "bg-white border-black/10 hover:border-black/20"
               }`}
             >
-              <div className="flex items-center justify-between border-b border-slate-800/80 pb-2 mb-2">
-                <span className="text-xs font-semibold text-slate-200 truncate flex items-center gap-1.5">
-                  <ImageIcon className="w-3.5 h-3.5 text-cyan-400" />
+              <div className="flex items-center justify-between border-b border-black/10 pb-2 mb-2">
+                <span className="text-xs font-semibold text-black/80 truncate flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5 text-purple-900" />
                   {photo.filename}
                 </span>
                 <span className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
@@ -150,23 +150,23 @@ export const PhotoMetadataCard: React.FC<PhotoMetadataCardProps> = ({
                 </span>
               </div>
 
-              <div className="space-y-1.5 text-[11px] text-slate-400">
+              <div className="space-y-1.5 text-[11px] text-black/50">
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3 text-slate-500" />
+                    <Calendar className="w-3 h-3 text-black/40" />
                     Capture Time:
                   </span>
-                  <span className="font-mono text-slate-200">
+                  <span className="font-mono text-black/80">
                     {photo.capture_date || "Timestamp Not Stamped"}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-1">
-                    <Camera className="w-3 h-3 text-slate-500" />
+                    <Camera className="w-3 h-3 text-black/40" />
                     Device / Camera:
                   </span>
-                  <span className="font-mono text-slate-200 truncate max-w-[150px]">
+                  <span className="font-mono text-black/80 truncate max-w-[150px]">
                     {photo.camera_make || photo.camera_model
                       ? `${photo.camera_make || ""} ${photo.camera_model || ""}`.trim()
                       : "Standard Sensor"}
@@ -175,12 +175,12 @@ export const PhotoMetadataCard: React.FC<PhotoMetadataCardProps> = ({
 
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-slate-500" />
+                    <MapPin className="w-3 h-3 text-black/40" />
                     GPS GeoTag:
                   </span>
                   <span
                     className={`font-semibold ${
-                      photo.has_gps ? "text-emerald-400" : "text-slate-500"
+                      photo.has_gps ? "text-emerald-400" : "text-black/40"
                     }`}
                   >
                     {photo.has_gps ? "Embedded Location" : "No GPS Tag"}

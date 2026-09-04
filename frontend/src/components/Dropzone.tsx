@@ -78,10 +78,10 @@ export const Dropzone: React.FC<DropzoneProps> = ({
 
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-between text-xs font-semibold text-slate-200">
+      <div className="flex items-center justify-between text-xs font-semibold text-black/80">
         <label className="flex items-center gap-1.5">
           <span>{label}</span>
-          {required && <span className="text-cyan-400 font-bold">*</span>}
+          {required && <span className="text-purple-900 font-bold">*</span>}
         </label>
 
         <div className="flex items-center gap-2">
@@ -89,13 +89,13 @@ export const Dropzone: React.FC<DropzoneProps> = ({
             <button
               type="button"
               onClick={onOpenSmartCamera}
-              className="text-[11px] text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1 bg-cyan-500/10 hover:bg-cyan-500/20 px-2 py-0.5 rounded-lg border border-cyan-500/30 transition-all"
+              className="text-[11px] text-purple-900 hover:text-purple-800 font-semibold flex items-center gap-1 bg-purple-900/10 hover:bg-purple-900/10 px-2 py-0.5 rounded-lg border border-purple-900/20 transition-all"
             >
               <Camera className="w-3 h-3" />
               <span>Smart Camera</span>
             </button>
           )}
-          <span className="text-[10px] text-slate-400 font-normal">{sublabel}</span>
+          <span className="text-[10px] text-black/50 font-normal">{sublabel}</span>
         </div>
       </div>
 
@@ -104,12 +104,12 @@ export const Dropzone: React.FC<DropzoneProps> = ({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => inputRef.current?.click()}
-        className={`group relative rounded-xl border border-dashed p-4 text-center cursor-pointer transition-all ${
+        className={`retro-dashed group relative rounded-xl p-4 text-center cursor-pointer transition-all duration-300 border-dashed border-2 hover:bg-purple-900/[0.02] hover:border-purple-900/20 ${
           isDragOver
-            ? "border-cyan-400 bg-cyan-950/20 ring-2 ring-cyan-400/20"
+            ? "border-purple-900/20 bg-purple-900/10 ring-2 ring-cyan-400/20"
             : files.length > 0
-            ? "border-slate-700 bg-slate-900/60 hover:border-slate-600"
-            : "border-slate-800 bg-slate-950/50 hover:border-slate-700 hover:bg-slate-900/40"
+            ? "border-cyan-300/35 bg-cyan-300/[0.04] hover:border-cyan-300/55"
+            : "border-black/20 bg-white hover:bg-purple-900/[0.02] hover:border-purple-900/20"
         }`}
       >
         <input
@@ -125,30 +125,30 @@ export const Dropzone: React.FC<DropzoneProps> = ({
           <div
             className={`w-9 h-9 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 ${
               files.length > 0
-                ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
-                : "bg-slate-800/80 text-slate-400"
+                ? "bg-purple-900/10 text-purple-900 border border-purple-900/20"
+                : "bg-black/5 text-black/50"
             }`}
           >
             {files.length > 0 ? (
-              <CheckCircle className="w-4 h-4 text-cyan-400" />
+              <CheckCircle className="w-4 h-4 text-purple-900" />
             ) : (
               <IconComponent className="w-4 h-4" />
             )}
           </div>
 
           <div>
-            <p className="text-xs font-medium text-slate-200">
+            <p className="text-xs font-medium text-black/80">
               {files.length > 0 ? (
-                <span className="text-cyan-300 font-semibold">
+                <span className="text-purple-800 font-semibold">
                   {files.length} file{files.length > 1 ? "s" : ""} selected
                 </span>
               ) : (
                 <>
-                  <span className="text-cyan-400 font-semibold">Click to upload</span> or drag and drop
+                  <span className="text-purple-900 font-semibold">Click to upload</span> or drag and drop
                 </>
               )}
             </p>
-            <p className="text-[10px] text-slate-400 mt-0.5">
+            <p className="text-[10px] text-black/50 mt-0.5">
               PDF, PNG, JPG, or TXT
             </p>
           </div>
@@ -161,12 +161,12 @@ export const Dropzone: React.FC<DropzoneProps> = ({
           {files.map((file, idx) => (
             <div
               key={`${file.name}-${idx}`}
-              className="flex items-center justify-between p-2 rounded-lg bg-slate-900/90 border border-slate-800 text-xs"
+              className="flex items-center justify-between p-2 rounded-lg bg-white/[0.035] border border-black/10 text-xs transition-colors hover:border-cyan-300/25"
             >
               <div className="flex items-center gap-2 truncate max-w-[85%]">
-                <IconComponent className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
-                <span className="text-slate-200 truncate font-mono text-[11px]">{file.name}</span>
-                <span className="text-[10px] text-slate-400 font-mono">
+                <IconComponent className="w-3.5 h-3.5 text-purple-900 flex-shrink-0" />
+                <span className="text-black/80 truncate font-mono text-[11px]">{file.name}</span>
+                <span className="text-[10px] text-black/50 font-mono">
                   ({formatFileSize(file.size)})
                 </span>
               </div>
@@ -176,7 +176,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({
                   e.stopPropagation();
                   removeFile(idx);
                 }}
-                className="text-slate-500 hover:text-rose-400 transition-colors p-1 rounded hover:bg-slate-800"
+                className="text-black/40 hover:text-rose-400 transition-colors p-1 rounded hover:bg-black/5"
               >
                 <X className="w-3.5 h-3.5" />
               </button>

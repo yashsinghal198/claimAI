@@ -1,105 +1,65 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { ShieldCheck, Cpu, Sparkles, RefreshCw, Radio } from "lucide-react";
-import { checkBackendHealth } from "@/services/api";
+import React from "react";
+import { RefreshCw } from "lucide-react";
 
 interface NavbarProps {
   onReset: () => void;
 }
 
+const NAV_LINKS = [
+  { label: "How it Works", href: "#trust-marquee" },
+  { label: "Live Demo", href: "#evidence-studio" },
+  { label: "Features", href: "#demo-presets" },
+];
+
 export const Navbar: React.FC<NavbarProps> = ({ onReset }) => {
-  const [isOnline, setIsOnline] = useState<boolean | null>(null);
-  const [checking, setChecking] = useState(false);
-
-  const checkStatus = async () => {
-    setChecking(true);
-    const online = await checkBackendHealth();
-    setIsOnline(online);
-    setChecking(false);
-  };
-
-  useEffect(() => {
-    checkStatus();
-    const interval = setInterval(checkStatus, 8000);
-    return () => clearInterval(interval);
-  }, []);
-
   return (
-    <header className="sticky top-0 z-50 backdrop-blur-xl bg-slate-950/80 border-b border-slate-800/80 px-4 lg:px-8 py-3.5 transition-all">
+    <header className="fixed top-0 left-0 right-0 z-50 w-full backdrop-blur-xl bg-white/80 border-b border-black/[0.08] px-6 py-3 transition-all">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* Brand Logo & Name */}
-        <div className="flex items-center gap-3.5">
-          <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-blue-500 to-cyan-400 p-[1px] shadow-lg shadow-indigo-500/20">
-            <div className="w-full h-full bg-slate-950 rounded-[11px] flex items-center justify-center">
-              <ShieldCheck className="w-5 h-5 text-cyan-400" />
-            </div>
-            <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-slate-950 animate-pulse" />
+        {/* Brand */}
+        <div className="flex items-center gap-3">
+          <div className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-black/[0.06] shadow-sm p-1">
+            <img
+              src="/logo-icon.png"
+              alt="ClaimAI Logo"
+              className="w-full h-full object-contain"
+            />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-bold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-slate-400">
-                ClaimAI
-              </h1>
-              <span className="text-[10px] uppercase font-semibold tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/30">
-                Pre-Claim Intelligence
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 hidden sm:block">
-              CodeBuild 1.0 • Team Tribit
-            </p>
-          </div>
+          <h1 className="font-bold text-base tracking-tight text-black">
+            ClaimAI
+          </h1>
         </div>
 
-        {/* Right Action Bar & Health status */}
-        <div className="flex items-center gap-3">
-          {/* API Connectivity status pill */}
-          <button
-            onClick={checkStatus}
-            title="Click to recheck API status"
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900/90 border border-slate-800 hover:border-slate-700 transition-colors"
-          >
-            <Radio
-              className={`w-3.5 h-3.5 ${
-                isOnline === null
-                  ? "text-slate-400 animate-spin"
-                  : isOnline
-                  ? "text-emerald-400 animate-pulse"
-                  : "text-amber-400"
-              }`}
-            />
-            <span className="hidden md:inline text-slate-400">FastAPI Gateway:</span>
-            <span
-              className={
-                isOnline === true
-                  ? "text-emerald-400 font-semibold"
-                  : isOnline === false
-                  ? "text-amber-400 font-semibold"
-                  : "text-slate-400"
-              }
+        {/* Center Nav Links */}
+        <nav className="hidden md:flex items-center gap-1">
+          {NAV_LINKS.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              className="px-3.5 py-1.5 text-[13px] font-medium text-black/55 hover:text-black rounded-lg hover:bg-black/[0.04] transition-colors"
             >
-              {isOnline === null
-                ? "Connecting..."
-                : isOnline
-                ? "Online (Port 8000)"
-                : "Simulation Mode"}
-            </span>
-          </button>
+              {link.label}
+            </a>
+          ))}
+        </nav>
 
-          {/* Reset Workspace button */}
+        {/* Right Actions */}
+        <div className="flex items-center gap-2">
           <button
             onClick={onReset}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg transition-all"
+            title="Reset workspace"
+            className="p-2 rounded-lg text-black/40 hover:text-black hover:bg-black/[0.04] transition-colors"
           >
-            <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
-            <span className="hidden sm:inline">Reset</span>
+            <RefreshCw className="w-4 h-4" />
           </button>
 
-          {/* Model Tag */}
-          <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-950/40 text-cyan-300 border border-cyan-800/40 text-xs font-medium">
-            <Cpu className="w-3.5 h-3.5 text-cyan-400" />
-            <span>GPT-4o Vision & Graph</span>
-          </div>
+          <a
+            href="#evidence-studio"
+            className="hidden sm:flex items-center px-4 py-2 text-[13px] font-semibold text-white bg-black rounded-xl hover:bg-neutral-800 transition-colors"
+          >
+            Login
+          </a>
         </div>
       </div>
     </header>

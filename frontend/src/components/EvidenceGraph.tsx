@@ -89,22 +89,22 @@ export const EvidenceGraph: React.FC<EvidenceGraphProps> = ({ result }) => {
   const activeNodeData = nodes.find((n) => n.id === selectedNode);
 
   return (
-    <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 lg:p-6 backdrop-blur-xl shadow-2xl space-y-5">
+    <div className="claim-panel rounded-2xl p-5 lg:p-6 space-y-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <GitBranch className="w-4 h-4 text-cyan-400" />
-          <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+          <GitBranch className="w-4 h-4 text-purple-900" />
+          <h3 className="text-sm font-bold text-black flex items-center gap-2">
             Multimodal Evidence Graph Visualizer
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-900/10 text-purple-800 border border-purple-900/20">
               Live Topology
             </span>
           </h3>
         </div>
-        <span className="text-xs text-slate-400">Click any node to inspect relationships</span>
+        <span className="text-xs text-black/50">Click any node to inspect relationships</span>
       </div>
 
       {/* Visual Canvas Diagram */}
-      <div className="relative p-6 rounded-2xl bg-slate-950/90 border border-slate-800/80 min-h-[320px] flex flex-col justify-between overflow-hidden">
+      <div className="relative p-6 rounded-2xl bg-black/[0.035] border border-black/15 min-h-[320px] flex flex-col justify-between overflow-hidden">
         {/* Grid Background Pattern */}
         <div
           className="absolute inset-0 opacity-15 pointer-events-none"
@@ -129,8 +129,8 @@ export const EvidenceGraph: React.FC<EvidenceGraphProps> = ({ result }) => {
                 onClick={() => setSelectedNode(node.id)}
                 className={`p-4 rounded-xl border cursor-pointer transition-all flex flex-col justify-between group ${
                   isSelected
-                    ? "bg-slate-900 ring-2 ring-cyan-400 border-cyan-400 shadow-lg shadow-cyan-500/20 scale-[1.02]"
-                    : "bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-900/90"
+                    ? "bg-white ring-2 ring-cyan-400 border-purple-900/20 shadow-lg shadow-purple-900/20 scale-[1.02]"
+                    : "bg-white border-black/10 hover:border-black/20 hover:bg-white"
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
@@ -139,10 +139,10 @@ export const EvidenceGraph: React.FC<EvidenceGraphProps> = ({ result }) => {
                       isRose
                         ? "bg-rose-500/20 text-rose-400 border-rose-500/40"
                         : isCyan
-                        ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/40"
+                        ? "bg-purple-900/10 text-purple-900 border-purple-900/20"
                         : isEmerald
                         ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
-                        : "bg-indigo-500/20 text-indigo-400 border-indigo-500/40"
+                        : "bg-indigo-900/10 text-indigo-400 border-indigo-900/20"
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -156,10 +156,10 @@ export const EvidenceGraph: React.FC<EvidenceGraphProps> = ({ result }) => {
                 </div>
 
                 <div>
-                  <h4 className="text-xs font-bold text-slate-100 group-hover:text-cyan-300 transition-colors truncate">
+                  <h4 className="text-xs font-bold text-black group-hover:text-purple-800 transition-colors truncate">
                     {node.title}
                   </h4>
-                  <p className="text-[10px] text-slate-400 truncate mt-0.5">
+                  <p className="text-[10px] text-black/50 truncate mt-0.5">
                     {node.subtitle}
                   </p>
                 </div>
@@ -169,8 +169,8 @@ export const EvidenceGraph: React.FC<EvidenceGraphProps> = ({ result }) => {
         </div>
 
         {/* Semantic Graph Linked Edges Bar */}
-        <div className="relative z-10 mt-6 pt-4 border-t border-slate-800/80 space-y-2.5">
-          <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+        <div className="relative z-10 mt-6 pt-4 border-t border-black/10 space-y-2.5">
+          <span className="text-[10px] uppercase font-bold text-black/50 block tracking-wider">
             Active Graph Cross-Checks & Edges
           </span>
 
@@ -179,8 +179,8 @@ export const EvidenceGraph: React.FC<EvidenceGraphProps> = ({ result }) => {
             <div
               className={`p-2.5 rounded-lg border text-xs flex items-center gap-2 ${
                 hasModelDiscrepancy
-                  ? "bg-rose-950/30 border-rose-500/40 text-rose-300 animate-pulse"
-                  : "bg-emerald-950/20 border-emerald-500/30 text-emerald-300"
+                  ? "bg-rose-50 border-rose-500/40 text-rose-300 animate-pulse"
+                  : "bg-emerald-50 border-emerald-500/30 text-emerald-300"
               }`}
             >
               <div className="w-2 h-2 rounded-full bg-current" />
@@ -193,8 +193,8 @@ export const EvidenceGraph: React.FC<EvidenceGraphProps> = ({ result }) => {
             <div
               className={`p-2.5 rounded-lg border text-xs flex items-center gap-2 ${
                 hasTimelineDiscrepancy
-                  ? "bg-rose-950/30 border-rose-500/40 text-rose-300 animate-pulse"
-                  : "bg-cyan-950/20 border-cyan-500/30 text-cyan-300"
+                  ? "bg-rose-50 border-rose-500/40 text-rose-300 animate-pulse"
+                  : "bg-purple-900/10 border-purple-900/20 text-purple-800"
               }`}
             >
               <div className="w-2 h-2 rounded-full bg-current" />
@@ -204,7 +204,7 @@ export const EvidenceGraph: React.FC<EvidenceGraphProps> = ({ result }) => {
             </div>
 
             {/* Edge 3: Forensics Integrity */}
-            <div className="p-2.5 rounded-lg border bg-emerald-950/20 border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+            <div className="p-2.5 rounded-lg border bg-emerald-50 border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-emerald-400" />
               <span className="font-semibold text-[11px] truncate">
                 EXIF & Visual Forensics Certified
@@ -216,22 +216,22 @@ export const EvidenceGraph: React.FC<EvidenceGraphProps> = ({ result }) => {
 
       {/* Node Inspector Drawer */}
       {activeNodeData && (
-        <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2.5 animate-in fade-in duration-200">
-          <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-            <span className="text-xs font-bold text-slate-200 flex items-center gap-2">
-              <Info className="w-3.5 h-3.5 text-cyan-400" />
+        <div className="p-4 rounded-xl bg-white border border-black/10 space-y-2.5 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between border-b border-black/10 pb-2">
+            <span className="text-xs font-bold text-black/80 flex items-center gap-2">
+              <Info className="w-3.5 h-3.5 text-purple-900" />
               Node Inspector: {activeNodeData.title}
             </span>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-black/5 text-black/70">
               Graph Entity
             </span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
             {Object.entries(activeNodeData.details).map(([key, val]) => (
-              <div key={key} className="p-2 rounded-lg bg-slate-900/60 border border-slate-800/80">
-                <span className="text-[10px] text-slate-400 block">{key}:</span>
-                <span className="font-semibold text-slate-200 truncate block text-[11px]">
+              <div key={key} className="p-2 rounded-lg bg-white border border-black/10">
+                <span className="text-[10px] text-black/50 block">{key}:</span>
+                <span className="font-semibold text-black/80 truncate block text-[11px]">
                   {val}
                 </span>
               </div>

@@ -31,8 +31,7 @@ export const ReadinessGauge: React.FC<ReadinessGaugeProps> = ({ score }) => {
   }, [score]);
 
   useEffect(() => {
-    // Smooth score animation
-    let startScore = animatedScore;
+    const startScore = animatedScore;
     const duration = 800;
     const startTime = performance.now();
 
@@ -82,19 +81,19 @@ export const ReadinessGauge: React.FC<ReadinessGaugeProps> = ({ score }) => {
 
   return (
     <div
-      className={`relative bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 backdrop-blur-xl shadow-2xl flex flex-col items-center justify-center text-center transition-all ${glowColor}`}
+      className={`claim-panel relative rounded-2xl p-6 flex flex-col items-center justify-center text-center transition-all ${glowColor}`}
     >
       {/* Floating Animated Increment Badge */}
       {incrementBadge && (
-        <div className="absolute top-4 right-4 z-20 flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400 text-emerald-300 text-xs font-bold shadow-lg shadow-emerald-500/30 animate-bounce">
+        <div className="claim-reveal absolute top-4 right-4 z-20 flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 text-xs font-bold shadow-lg shadow-emerald-500/10">
           <PlusCircle className="w-4 h-4 text-emerald-400" />
           <span>+{incrementBadge} PTS RECOVERED</span>
         </div>
       )}
 
       <div className="flex items-center gap-2 mb-4">
-        <TrendingUp className="w-4 h-4 text-cyan-400" />
-        <span className="text-xs uppercase tracking-wider font-bold text-slate-300">
+        <TrendingUp className="w-4 h-4 text-purple-900" />
+        <span className="text-xs uppercase tracking-wider font-bold text-black/70">
           Claim Evidence Readiness
         </span>
       </div>
@@ -107,7 +106,7 @@ export const ReadinessGauge: React.FC<ReadinessGaugeProps> = ({ score }) => {
             cx="80"
             cy="80"
             r={radius}
-            stroke="#1e293b"
+            stroke="rgba(0,0,0,0.08)"
             strokeWidth="12"
             fill="transparent"
           />
@@ -131,11 +130,11 @@ export const ReadinessGauge: React.FC<ReadinessGaugeProps> = ({ score }) => {
 
         {/* Center Score Counter */}
         <div className="absolute flex flex-col items-center justify-center">
-          <span className="text-4xl font-extrabold tracking-tight text-white flex items-baseline">
+          <span className="text-4xl font-extrabold tracking-tight text-black flex items-baseline">
             {animatedScore}
-            <span className="text-lg font-bold text-slate-400 ml-0.5">%</span>
+            <span className="text-lg font-bold text-black/50 ml-0.5">%</span>
           </span>
-          <span className="text-[11px] font-medium text-slate-400 mt-0.5">
+          <span className="text-[11px] font-medium text-black/50 mt-0.5">
             Readiness Index
           </span>
         </div>
@@ -144,24 +143,24 @@ export const ReadinessGauge: React.FC<ReadinessGaugeProps> = ({ score }) => {
       {/* Status Tier Badge */}
       <div className="mt-4">
         {isHigh ? (
-          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold animate-pulse">
+          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 text-xs font-semibold">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
             <span>Submission Ready</span>
           </div>
         ) : isMedium ? (
-          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
+          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-800 text-xs font-semibold">
             <AlertTriangle className="w-4 h-4 text-amber-400" />
             <span>Remediation Advised</span>
           </div>
         ) : (
-          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold">
+          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-800 text-xs font-semibold">
             <AlertOctagon className="w-4 h-4 text-rose-400" />
             <span>High Risk of Denial</span>
           </div>
         )}
       </div>
 
-      <p className="text-xs text-slate-400 mt-3 max-w-[280px] leading-relaxed">
+      <p className="text-xs text-black/50 mt-3 max-w-[280px] leading-relaxed">
         {isHigh
           ? "Evidence consistency, timeline order, and required documentation are verified."
           : isMedium
