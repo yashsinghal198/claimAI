@@ -10,11 +10,11 @@ interface IssuesFeedProps {
 
 export const IssuesFeed: React.FC<IssuesFeedProps> = ({ issues }) => {
   return (
-    <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-md">
+    <div className="claim-panel rounded-2xl p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <AlertCircle className="w-4 h-4 text-amber-400" />
-          <h3 className="text-sm font-semibold text-slate-200">
+          <h3 className="text-sm font-semibold text-black/80">
             Detected Issues & Contradictions
           </h3>
         </div>
@@ -30,13 +30,13 @@ export const IssuesFeed: React.FC<IssuesFeedProps> = ({ issues }) => {
       </div>
 
       {issues.length === 0 ? (
-        <div className="p-4 rounded-xl bg-emerald-950/20 border border-emerald-500/30 flex items-center gap-3">
+        <div className="p-4 rounded-xl bg-emerald-500/[0.08] border border-emerald-500/30 flex items-center gap-3">
           <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
           <div>
-            <p className="text-xs font-semibold text-emerald-200">
+              <p className="text-xs font-semibold text-emerald-900">
               Zero Contradictions Detected
             </p>
-            <p className="text-[11px] text-emerald-400/80 mt-0.5">
+              <p className="text-[11px] text-emerald-800/80 mt-0.5">
               All dates, model serial tags, and narratives align seamlessly.
             </p>
           </div>
@@ -52,10 +52,10 @@ export const IssuesFeed: React.FC<IssuesFeedProps> = ({ issues }) => {
                 key={`${issue.description}-${idx}`}
                 className={`p-3.5 rounded-xl border flex items-start gap-3 transition-all ${
                   isHigh
-                    ? "bg-rose-950/20 border-rose-500/30"
+                    ? "bg-rose-500/[0.06] border-rose-500/30"
                     : isMedium
-                    ? "bg-amber-950/20 border-amber-500/30"
-                    : "bg-blue-950/20 border-blue-500/30"
+                    ? "bg-amber-500/[0.08] border-amber-500/30"
+                    : "bg-black/[0.035] border-black/15"
                 }`}
               >
                 <div className="mt-0.5 flex-shrink-0">
@@ -76,13 +76,13 @@ export const IssuesFeed: React.FC<IssuesFeedProps> = ({ issues }) => {
                           ? "bg-rose-500/10 text-rose-300 border-rose-500/30"
                           : isMedium
                           ? "bg-amber-500/10 text-amber-300 border-amber-500/30"
-                          : "bg-blue-500/10 text-blue-300 border-blue-500/30"
+                          : "bg-black/[0.06] text-black/70 border-black/15"
                       }`}
                     >
                       {issue.severity} SEVERITY
                     </span>
                   </div>
-                  <p className="text-xs text-slate-200 leading-relaxed">
+                  <p className="text-xs text-black/80 leading-relaxed">
                     {issue.description}
                   </p>
                 </div>

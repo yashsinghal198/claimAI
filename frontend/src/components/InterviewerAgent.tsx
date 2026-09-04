@@ -95,22 +95,22 @@ export const InterviewerAgent: React.FC<InterviewerAgentProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-cyan-500/30 rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl shadow-cyan-950/30 overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="bg-white border border-purple-900/20 rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl shadow-cyan-950/30 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/60">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-black/10 bg-white">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center border border-cyan-500/40">
+            <div className="w-8 h-8 rounded-xl bg-purple-900/10 text-purple-900 flex items-center justify-center border border-purple-900/20">
               <Bot className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+              <h3 className="text-sm font-bold text-black flex items-center gap-1.5">
                 Conversational Intake Interviewer
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-900/10 text-purple-800 border border-purple-900/20">
                   AI Agent
                 </span>
               </h3>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-black/50">
                 Live interactive Q&A to eliminate ambiguous claim narrative risks
               </p>
             </div>
@@ -118,18 +118,18 @@ export const InterviewerAgent: React.FC<InterviewerAgentProps> = ({
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-lg text-black/50 hover:text-white hover:bg-black/5 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Real-time Enhanced Statement Preview Bar */}
-        <div className="px-6 py-3 bg-slate-950/90 border-b border-slate-800/80">
-          <span className="text-[10px] uppercase font-bold text-cyan-400 block tracking-wider mb-1">
+        <div className="px-6 py-3 bg-white border-b border-black/10">
+          <span className="text-[10px] uppercase font-bold text-purple-900 block tracking-wider mb-1">
             Real-Time Refined Incident Narrative
           </span>
-          <p className="text-xs text-slate-200 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 leading-relaxed font-mono">
+          <p className="text-xs text-black/80 bg-white p-2.5 rounded-xl border border-black/10 leading-relaxed font-mono">
             {statement || "Awaiting intake conversation..."}
           </p>
         </div>
@@ -146,7 +146,7 @@ export const InterviewerAgent: React.FC<InterviewerAgentProps> = ({
                 <div
                   className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-xs ${
                     isBot
-                      ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
+                      ? "bg-purple-900/10 text-purple-900 border border-purple-900/20"
                       : "bg-indigo-600 text-white"
                   }`}
                 >
@@ -156,7 +156,7 @@ export const InterviewerAgent: React.FC<InterviewerAgentProps> = ({
                 <div
                   className={`p-3.5 rounded-2xl text-xs leading-relaxed max-w-[80%] ${
                     isBot
-                      ? "bg-slate-950/80 border border-slate-800 text-slate-200"
+                      ? "bg-white border border-black/10 text-black/80"
                       : "bg-indigo-600/90 text-white"
                   }`}
                 >
@@ -167,7 +167,7 @@ export const InterviewerAgent: React.FC<InterviewerAgentProps> = ({
           })}
 
           {isLoading && (
-            <div className="flex items-center gap-2 text-xs text-slate-400">
+            <div className="flex items-center gap-2 text-xs text-black/50">
               <div className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
               <span>AI Interviewer is formulating clarifying question...</span>
             </div>
@@ -176,15 +176,15 @@ export const InterviewerAgent: React.FC<InterviewerAgentProps> = ({
 
         {/* Quick Answer Chips */}
         {chips.length > 0 && (
-          <div className="px-6 py-2 bg-slate-950/40 border-t border-slate-800/60 flex items-center gap-2 overflow-x-auto">
-            <span className="text-[10px] text-slate-500 font-semibold flex-shrink-0">
+          <div className="px-6 py-2 bg-white border-t border-black/10 flex items-center gap-2 overflow-x-auto">
+            <span className="text-[10px] text-black/40 font-semibold flex-shrink-0">
               Suggestions:
             </span>
             {chips.map((chip, i) => (
               <button
                 key={i}
                 onClick={() => handleSendMessage(chip)}
-                className="text-[11px] px-2.5 py-1 rounded-full bg-slate-800 hover:bg-cyan-950 hover:text-cyan-300 hover:border-cyan-500/40 border border-slate-700 text-slate-300 transition-all flex-shrink-0"
+                className="text-[11px] px-2.5 py-1 rounded-full bg-black/5 hover:bg-purple-900/10 hover:text-purple-800 hover:border-purple-900/20 border border-black/20 text-black/70 transition-all flex-shrink-0"
               >
                 {chip}
               </button>
@@ -193,7 +193,7 @@ export const InterviewerAgent: React.FC<InterviewerAgentProps> = ({
         )}
 
         {/* Input Bar & Apply Action */}
-        <div className="p-4 border-t border-slate-800 bg-slate-950/80 space-y-3">
+        <div className="p-4 border-t border-black/10 bg-white space-y-3">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -206,12 +206,12 @@ export const InterviewerAgent: React.FC<InterviewerAgentProps> = ({
               value={inputVal}
               onChange={(e) => setInputVal(e.target.value)}
               placeholder="Reply to AI assistant with more context..."
-              className="flex-1 text-xs px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+              className="flex-1 text-xs px-3.5 py-2.5 rounded-xl bg-white border border-black/20 text-black placeholder-black/40 focus:outline-none focus:border-purple-900/20"
             />
             <button
               type="submit"
               disabled={isLoading || !inputVal.trim()}
-              className="p-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold disabled:opacity-50 transition-colors"
+              className="p-2.5 rounded-xl bg-purple-900/10 hover:bg-cyan-400 text-black font-bold disabled:opacity-50 transition-colors"
             >
               <Send className="w-4 h-4" />
             </button>
@@ -221,7 +221,7 @@ export const InterviewerAgent: React.FC<InterviewerAgentProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="text-xs text-slate-400 hover:text-slate-200"
+              className="text-xs text-black/50 hover:text-black/80"
             >
               Cancel
             </button>
@@ -232,7 +232,7 @@ export const InterviewerAgent: React.FC<InterviewerAgentProps> = ({
                 onApplyStatement(statement);
                 onClose();
               }}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white shadow-lg shadow-cyan-500/20 transition-all"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-purple-900 to-indigo-600 hover:from-cyan-400 hover:to-indigo-900 text-white shadow-lg shadow-purple-900/20 transition-all"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>Apply Refined Statement</span>

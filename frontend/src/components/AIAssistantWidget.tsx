@@ -276,51 +276,39 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-40 flex items-center gap-3 p-3.5 pr-5 rounded-full bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white shadow-2xl shadow-cyan-500/30 border border-cyan-300/30 group hover:scale-105 transition-all duration-300 active:scale-95"
+          className="fixed bottom-6 right-6 z-40 flex items-center justify-center w-14 h-14 rounded-full bg-neutral-900 hover:bg-neutral-800 text-white shadow-2xl shadow-black/15 border border-neutral-700/30 group hover:scale-105 transition-all duration-300 active:scale-95"
+          title="Open AI Claim Assistant"
         >
-          <div className="relative">
-            <div className="w-8 h-8 rounded-full bg-slate-950 flex items-center justify-center text-cyan-400">
-              <Bot className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-            </div>
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 border-2 border-slate-950 rounded-full animate-pulse" />
-          </div>
-
-          <div className="text-left">
-            <span className="text-xs font-extrabold tracking-wide block">
-              AI Claim Assistant
-            </span>
-            <span className="text-[10px] text-cyan-100/80 font-mono">
-              Online • Live Intake Copilot
-            </span>
-          </div>
+          <Bot className="w-6 h-6 group-hover:rotate-12 transition-transform text-white" />
+          <span className="absolute top-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-neutral-900 rounded-full animate-pulse" />
         </button>
       )}
 
       {isOpen && (
         <div
-          className={`fixed bottom-6 right-6 z-50 bg-slate-950/95 border border-cyan-500/40 rounded-3xl backdrop-blur-2xl shadow-2xl shadow-cyan-950/50 flex flex-col overflow-hidden transition-all duration-300 ${
+          className={`fixed bottom-6 right-6 z-50 bg-white border border-purple-900/20 rounded-3xl backdrop-blur-2xl shadow-2xl shadow-black/10 flex flex-col overflow-hidden transition-all duration-300 ${
             isMinimized
               ? "w-80 h-16"
               : "w-[92vw] sm:w-[420px] md:w-[460px] h-[580px] max-h-[85vh]"
           }`}
         >
-          <div className="flex items-center justify-between px-4 py-3.5 bg-slate-900/90 border-b border-slate-800">
+          <div className="flex items-center justify-between px-4 py-3.5 bg-white border-b border-black/10">
             <div className="flex items-center gap-2.5">
               <div className="relative">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500/20 to-indigo-500/20 text-cyan-400 flex items-center justify-center border border-cyan-500/30">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-900/20 to-indigo-900/20 text-purple-900 flex items-center justify-center border border-purple-900/20">
                   <Bot className="w-4 h-4" />
                 </div>
-                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 border border-slate-900 rounded-full" />
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 border border-white rounded-full" />
               </div>
 
               <div>
-                <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
+                <h3 className="text-xs font-bold text-black flex items-center gap-1.5">
                   ClaimAI Conversational Assistant
-                  <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+                  <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-purple-900/10 text-purple-800 border border-purple-900/20">
                     Live
                   </span>
                 </h3>
-                <p className="text-[10px] text-slate-400">
+                <p className="text-[10px] text-black/50">
                   Ask anything about your claim or insurance
                 </p>
               </div>
@@ -329,7 +317,7 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setIsMinimized(!isMinimized)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="p-1 rounded-lg text-black/50 hover:text-black hover:bg-black/5 transition-colors"
               >
                 {isMinimized ? (
                   <Maximize2 className="w-3.5 h-3.5" />
@@ -340,7 +328,7 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
 
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                className="p-1 rounded-lg text-black/50 hover:text-black hover:bg-black/5 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -349,14 +337,14 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
 
           {!isMinimized && (
             <>
-              <div className="px-4 py-2 bg-cyan-950/20 border-b border-cyan-500/20 flex items-center justify-between text-[11px]">
-                <div className="flex items-center gap-1.5 text-cyan-300 truncate max-w-[75%]">
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0 animate-spin" />
+              <div className="px-4 py-2 bg-purple-900/10 border-b border-purple-900/20 flex items-center justify-between text-[11px]">
+                <div className="flex items-center gap-1.5 text-purple-800 truncate max-w-[75%]">
+                  <Sparkles className="w-3.5 h-3.5 text-purple-900 flex-shrink-0 animate-spin" />
                   <span className="truncate font-mono">
                     {statement || "Drafting incident statement in real time..."}
                   </span>
                 </div>
-                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/80">
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-600/30">
                   LIVE SYNC
                 </span>
               </div>
@@ -374,7 +362,7 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
                       <div
                         className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 text-[11px] ${
                           isBot
-                            ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
+                            ? "bg-purple-900/10 text-purple-900 border border-purple-900/20"
                             : "bg-indigo-600 text-white"
                         }`}
                       >
@@ -384,15 +372,15 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
                       <div
                         className={`p-3 rounded-2xl text-xs leading-relaxed max-w-[82%] shadow-sm whitespace-pre-line ${
                           isBot
-                            ? "bg-slate-900 border border-slate-800 text-slate-200"
+                            ? "bg-white border border-black/10 text-black/80"
                             : "bg-gradient-to-r from-indigo-600 to-blue-600 text-white"
                         }`}
                       >
                         {msg.content || (
                           <span className="inline-flex gap-1 items-center">
-                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" />
-                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce [animation-delay:0.2s]" />
-                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce [animation-delay:0.4s]" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-neutral-400 animate-bounce" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-neutral-400 animate-bounce [animation-delay:0.2s]" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-neutral-400 animate-bounce [animation-delay:0.4s]" />
                           </span>
                         )}
                       </div>
@@ -401,7 +389,7 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
                 })}
 
                 {isTyping && (
-                  <div className="flex items-center gap-2 text-[11px] text-cyan-400 pl-8">
+                  <div className="flex items-center gap-2 text-[11px] text-purple-900 pl-8">
                     <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
                     <span>Copilot is formulating response...</span>
                   </div>
@@ -411,12 +399,12 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
               </div>
 
               {chips.length > 0 && (
-                <div className="px-4 py-2 bg-slate-950/60 border-t border-slate-800/80 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                <div className="px-4 py-2 bg-white border-t border-black/10 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
                   {chips.map((chip, i) => (
                     <button
                       key={i}
                       onClick={() => handleSendMessage(chip)}
-                      className="text-[10px] px-2.5 py-1 rounded-full bg-slate-900 hover:bg-cyan-950 hover:text-cyan-300 hover:border-cyan-500/50 border border-slate-800 text-slate-300 transition-all flex-shrink-0 font-medium whitespace-nowrap active:scale-95"
+                      className="text-[10px] px-2.5 py-1 rounded-full bg-white hover:bg-purple-900/10 hover:text-purple-800 hover:border-purple-900/20 border border-black/10 text-black/70 transition-all flex-shrink-0 font-medium whitespace-nowrap active:scale-95"
                     >
                       {chip}
                     </button>
@@ -424,7 +412,7 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
                 </div>
               )}
 
-              <div className="p-3 border-t border-slate-800 bg-slate-900/90">
+              <div className="p-3 border-t border-black/10 bg-white">
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
@@ -437,13 +425,13 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
                     value={inputVal}
                     onChange={(e) => setInputVal(e.target.value)}
                     placeholder="Type anything here (e.g. 'how are you' or 'dropped my phone')..."
-                    className="flex-1 text-xs px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+                    className="flex-1 text-xs px-3.5 py-2.5 rounded-xl bg-white border border-black/20 text-black placeholder-black/40 focus:outline-none focus:border-purple-900/20"
                   />
 
                   <button
                     type="submit"
                     disabled={isTyping || !inputVal.trim()}
-                    className="p-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 text-slate-950 font-bold transition-all shadow-md shadow-cyan-500/20 active:scale-95"
+                    className="p-2.5 rounded-xl bg-purple-900/10 hover:bg-neutral-700 disabled:opacity-40 text-black font-bold transition-all shadow-md shadow-purple-900/20 active:scale-95"
                   >
                     <Send className="w-3.5 h-3.5" />
                   </button>

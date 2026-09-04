@@ -53,15 +53,15 @@ export const ExtractedEntitiesCard: React.FC<ExtractedEntitiesCardProps> = ({
   ];
 
   return (
-    <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-md">
+    <div className="claim-panel rounded-2xl p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Database className="w-4 h-4 text-cyan-400" />
-          <h3 className="text-sm font-semibold text-slate-200">
+          <Database className="w-4 h-4 text-purple-900" />
+          <h3 className="text-sm font-semibold text-black/80">
             Structured Evidence Entities (OCR & NLP)
           </h3>
         </div>
-        <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+        <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-purple-900/10 text-purple-800 border border-purple-900/20">
           Parsed Metadata
         </span>
       </div>
@@ -76,13 +76,13 @@ export const ExtractedEntitiesCard: React.FC<ExtractedEntitiesCardProps> = ({
               key={field.label}
               className={`p-3 rounded-xl border transition-all flex flex-col justify-between ${
                 isPresent
-                  ? "bg-slate-950/60 border-slate-800"
-                  : "bg-slate-950/30 border-slate-900 opacity-60"
+                  ? "bg-white border-black/10"
+                  : "bg-white border-white opacity-60"
               }`}
             >
-              <div className="flex items-center justify-between gap-1 text-[11px] text-slate-400 mb-1">
+              <div className="flex items-center justify-between gap-1 text-[11px] text-black/50 mb-1">
                 <span className="flex items-center gap-1.5 font-medium">
-                  <Icon className="w-3.5 h-3.5 text-slate-400" />
+                  <Icon className="w-3.5 h-3.5 text-black/50" />
                   {field.label}
                 </span>
                 {isPresent ? (
@@ -98,7 +98,7 @@ export const ExtractedEntitiesCard: React.FC<ExtractedEntitiesCardProps> = ({
 
               <div
                 className={`text-xs font-semibold truncate ${
-                  isPresent ? "text-slate-100" : "text-slate-500 italic"
+                  isPresent ? "text-black" : "text-black/40 italic"
                 }`}
                 title={field.value || field.placeholder}
               >
